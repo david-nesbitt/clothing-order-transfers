@@ -58,7 +58,7 @@ Build a scheduled Power Automate flow that runs daily at 7:00 PM **Brisbane Time
 | 4 | UNC path confirmed: `\\PPS2012\DataLoad\StkTrans` | ✅ Done |
 | 5 | Service account confirmed: reuse `PRICESPLUS\TenciaCheckSvc` (already has access via Everyone ACE) | ✅ Done |
 | 6 | File System connection created in Power Automate (gateway + UNC path + TenciaCheckSvc) | ✅ Done — `\\PPS2012\DataLoad\StkTrans` Connected |
-| 7 | Smartsheet API token (from Account > Personal Settings > API Access) | ⬜ To be supplied |
+| 7 | Smartsheet API token — named "Power Automate Clothing Order Export" in Smartsheet | ✅ Generated — stored in IT password manager only, never in repo |
 | 8 | Teams channel ID — Warehouse team | ⬜ To be supplied at build time |
 | 9 | Teams channel IDs — one per Post to Location store | ⬜ To be supplied at build time |
 | 10 | Teams message content — Warehouse notification | ⬜ To be defined at build time |
