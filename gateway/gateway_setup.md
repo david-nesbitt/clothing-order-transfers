@@ -4,95 +4,90 @@
 
 The On-premises Data Gateway is installed on **PP01-SV06** (our RDP/general-purpose server). It creates an outbound-only connection to Azure Service Bus, allowing Power Automate to write files directly to UNC paths on the internal network — no inbound firewall rules required.
 
-**Confirmed not installed** — PP01-SV06 has no gateway service or registry entries as of 2026-05-26.
+**Installed:** 2026-05-26 — version 3000.318.9 (May 2026). Status: Online.
 
 | | |
 |---|---|
 | **Gateway host** | PP01-SV06 |
 | **Gateway name** | PP01-SV06-Gateway |
-| **Destination UNC path** | `\\PPS2012\DataLoad\StkTrans` |
-| **Service account** | `PRICESPLUS\TenciaCheckSvc` *(existing — no new account needed, see below)* |
-| **M365 registration account** | `DavidN@pricesplus.com.au` |
+| **M365 registration account** | DavidN@pricesplus.com.au |
+| **Region** | Australia Southeast |
 
 ---
 
-## Service Account Decision — Reuse TenciaCheckSvc
+## Architecture — Two Separate Accounts, Two Separate Purposes
 
-`PRICESPLUS\TenciaCheckSvc` already exists as a dedicated domain service account (used by the TenciaConnectChecker project). It can be reused here — no new AD account needed.
+Understanding this distinction is important before configuring anything:
 
-**Why it already has access to `\\PPS2012\DataLoad\StkTrans`:**
-The folder ACL includes `Everyone: FullControl`, which covers any authenticated domain account including `TenciaCheckSvc`. Confirmed by reading the ACL on `E:\DataLoad\StkTrans` on PPS2012 directly.
+| | Account | Purpose | Permissions needed |
+|---|---|---|---|
+| **Gateway service account** | `PRICESPLUS\svc_pa_gateway` | Runs the gateway Windows service on PP01-SV06 | "Log on as a service" on PP01-SV06 only — no file share access needed |
+| **Connection credentials** | e.g. `PRICESPLUS\TenciaCheckSvc` | Authenticates to a specific resource (file share, SQL Server, etc.) per connection | Write access to the specific UNC path for that connection |
 
-> Note: The ACL also contains two unresolved SIDs (orphaned deleted accounts). These can be cleaned up by IT at any time — right-click the folder → Properties → Security → Advanced → remove any entries showing as SIDs without names.
+The gateway is **general-purpose** — one installation on PP01-SV06 serves all current and future Power Automate flows at Prices Plus. Each Power Automate connection specifies its own credentials for its own resource. The service account just keeps the gateway service running.
 
-The gateway service will run as `PRICESPLUS\TenciaCheckSvc`. The password for this account is stored in the IT password manager.
-
----
-
-## Step 1 — Download the Gateway Installer
-
-1. RDP into **PP01-SV06** (log in as your own account or a local admin)
-2. Open a browser and go to **https://make.powerautomate.com**
-3. Sign in as `DavidN@pricesplus.com.au`
-4. In the left navigation: **Data → Gateways**
-5. Click **+ New gateway** (top right)
-6. A panel appears — click **Download gateway installer**
-7. Save `GatewayInstall.exe` to `C:\Installs\` (create the folder if needed)
+Do not use `TenciaCheckSvc` as the service account — that name implies a specific purpose and would be confusing as more connections are added.
 
 ---
 
-## Step 2 — Install the Gateway
+## Step 0 — IT Pre-work: Create svc_pa_gateway
 
-Run the installer **as Administrator** on PP01-SV06:
+Before changing the service account, ask IT to create a dedicated generic gateway service account:
 
-1. Right-click `GatewayInstall.exe` → **Run as administrator**
-2. Accept the terms and click **Install**
-3. Accept the default install path (`C:\Program Files\On-premises data gateway`)
-4. When prompted for a sign-in email: enter `DavidN@pricesplus.com.au`
-5. Sign in with your M365 credentials in the browser window that opens
-6. Choose: **Register a new gateway on this computer**
-7. **Gateway name:** `PP01-SV06-Gateway`
-8. **Recovery key:** Choose a strong key and **store it in the IT password manager**
-   - Required to restore or migrate the gateway if PP01-SV06 is ever rebuilt — cannot be recovered if lost
-9. Click **Configure**
-10. Wait for: *"The gateway PP01-SV06-Gateway is online and ready to be used"*
+1. **Create the account** in Active Directory:
+   - Username: `svc_pa_gateway`
+   - Full name: `Power Automate Gateway Service`
+   - Password: strong, stored in IT password manager
+   - **Password never expires:** Yes
+   - **User cannot change password:** Yes
+   - No mailbox required
 
-> The gateway installs as Windows service **On-premises data gateway service** (`PBIEgwService`), initially running as `NT SERVICE\PBIEgwService`. This is changed in the next step.
+2. **Grant "Log on as a service" right** on PP01-SV06:
+   - Local Security Policy → Security Settings → Local Policies → User Rights Assignment → **Log on as a service**
+   - Add `PRICESPLUS\svc_pa_gateway`
+   - *(The gateway app's Service Settings page can also do this automatically — see Step 2)*
+
+3. **No file share permissions needed** — `svc_pa_gateway` does not access any UNC paths directly. Resource access is handled by per-connection credentials.
 
 ---
 
-## Step 3 — Switch the Service to TenciaCheckSvc
+## Step 1 — Change the Gateway Service Account
 
-The default service identity cannot access network UNC paths. Change it to `TenciaCheckSvc`:
+The gateway is currently running as the default `NT SERVICE\PBIEgwService`. Change it to `svc_pa_gateway`:
 
-1. On PP01-SV06, open **Services** (`services.msc`)
-2. Find **On-premises data gateway service**
+**Option A — via the Gateway app (easiest):**
+1. Open the **On-premises data gateway** app on PP01-SV06 (it's in the Start menu / system tray)
+2. Click **Service Settings** in the left menu
+3. Under "Gateway service account", click **Change account**
+4. Enter `PRICESPLUS\svc_pa_gateway` and the password
+5. Click **Apply** — the service will restart automatically
+
+**Option B — via Services.msc:**
+1. Open `services.msc` on PP01-SV06
+2. Find **On-premises data gateway service** (`PBIEgwService`)
 3. Right-click → **Properties → Log On tab**
-4. Select **This account**
-5. Enter: `PRICESPLUS\TenciaCheckSvc`
-6. Enter the password (from IT password manager)
-7. Click **OK**
-8. Right-click the service → **Restart**
-9. Confirm status returns to **Running**
+4. Select **This account** → enter `PRICESPLUS\svc_pa_gateway` and password
+5. Click OK → right-click → **Restart**
 
-> If the service fails to start: the account may need the **"Log on as a service"** right granted on PP01-SV06.
-> To check: Local Security Policy → Security Settings → Local Policies → User Rights Assignment → Log on as a service → add `PRICESPLUS\TenciaCheckSvc`.
+After the restart, confirm the Status page shows the gateway is still **Online**.
 
 ---
 
-## Step 4 — Verify Gateway is Online
+## Step 2 — Verify Gateway is Still Online
 
-Back in Power Automate on your local PC:
+In Power Automate on your local PC:
 
 1. Go to **https://make.powerautomate.com**
 2. **Data → Gateways**
 3. **PP01-SV06-Gateway** should show status **Online**
 
-If Offline: confirm `PBIEgwService` is Running on PP01-SV06 and the TenciaCheckSvc password is correct.
+If Offline: confirm `PBIEgwService` is Running on PP01-SV06 and the `svc_pa_gateway` password is correct.
 
 ---
 
-## Step 5 — Create the File System Connection in Power Automate
+## Step 3 — Create a File System Connection (for Clothing Order Export)
+
+Each resource gets its own connection with its own credentials. For the clothing order export:
 
 1. Go to **https://make.powerautomate.com**
 2. **Data → Connections → + New connection**
@@ -107,24 +102,34 @@ If Offline: confirm `PBIEgwService` is Running on PP01-SV06 and the TenciaCheckS
    | Password | *(from IT password manager)* |
    | Gateway | `PP01-SV06-Gateway` |
 
-5. Click **Create**
-6. Connection should show as **Connected**
+5. Click **Create** — connection should show as **Connected**
 
-> Files created by the flow land directly in `\\PPS2012\DataLoad\StkTrans` — no subfolder needed.
+> `TenciaCheckSvc` is used here as the *connection* credentials (not the service account) because it already has write access to `\\PPS2012\DataLoad\StkTrans` via the Everyone ACE on that folder.
 
 ---
 
-## Step 6 — Update the Power Automate Flow (Task 3.6)
+## Adding Future Connections
+
+To use this gateway for other purposes (different file shares, SQL Server, SFTP, etc.):
+
+1. **Data → Connections → + New connection**
+2. Select the relevant connector
+3. Enter credentials appropriate for *that* resource
+4. Select **PP01-SV06-Gateway**
+
+The gateway service account (`svc_pa_gateway`) does not change — only the per-connection credentials differ.
+
+---
+
+## Step 4 — Use in the Clothing Order Export Flow (Task 3.6)
 
 In the flow, the file creation action is:
 
 - Action: **Create file** *(File System connector — not SharePoint)*
-- Connection: the File System connection created in Step 5
+- Connection: the File System connection created in Step 3
 - Folder path: `/`
 - File name: `@{variables('varFileName')}` — e.g. `STKTRAN_014_105676_2026-04-30.txt`
 - File content: the CSV string built in step 3.5 of the plan
-
-Everything else in the flow (Tasks 1, 2, 4, 5) is unchanged.
 
 ---
 
@@ -132,14 +137,13 @@ Everything else in the flow (Tasks 1, 2, 4, 5) is unchanged.
 
 Gateway logs are on PP01-SV06 at:
 ```
-C:\Users\TenciaCheckSvc\AppData\Local\Microsoft\On-premises data gateway\
+C:\Users\svc_pa_gateway\AppData\Local\Microsoft\On-premises data gateway\
 ```
 
-Power Automate shows live gateway status at **Data → Gateways**. If a flow run fails with a gateway error, check:
-
+If a flow run fails with a gateway error, check:
 1. `PBIEgwService` is Running on PP01-SV06
-2. `TenciaCheckSvc` password has not been changed (it should be set to never expire)
-3. `\\PPS2012\DataLoad\StkTrans` is reachable from PP01-SV06
+2. `svc_pa_gateway` password has not been changed
+3. The target UNC path is reachable from PP01-SV06
 
 ---
 
