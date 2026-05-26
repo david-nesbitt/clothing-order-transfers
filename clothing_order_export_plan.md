@@ -53,7 +53,7 @@ Build a scheduled Power Automate flow that runs daily at 7:00 PM **Brisbane Time
 | # | Item | Status |
 |---|---|---|
 | 1 | Smartsheet `Exported Transfer` column added (CHECKBOX, ID: `2388194816724868`) | ✅ Done |
-| 2 | CSV file per row — column structure to be defined before Task 4 | ⬜ Pending |
+| 2 | CSV file per row — column structure defined in `csv/csv_structure.md` | ✅ Done |
 | 3 | SharePoint site URL and target folder path for CSV output | ⬜ To be supplied |
 | 4 | Smartsheet API token (from Account > Personal Settings > API Access) | ⬜ To be supplied |
 | 5 | Teams channel ID — Warehouse team | ⬜ To be supplied at build time |
@@ -128,31 +128,72 @@ Set `varExportRows` to the output of the filter array.
 
 ### Task 3 — Create One CSV File Per Row in SharePoint
 
-> **CSV column structure must be defined before this task is built.**
-> When the column list is provided, each field maps to a Smartsheet column by the column IDs listed in the reference table above.
+> Full column specification: see `csv/csv_structure.md`
 
 **3.1 — Apply to each row in varExportRows**
 
-For each row:
-
 **3.2 — Extract cell values**
-For each required CSV field, use an expression to find the matching cell by `columnId` and read its `value`. Pattern:
+
+Add `Initialize variable` actions inside the loop to extract each required cell. Use this pattern for every field:
 ```
-@{first(filter(item()?['cells'], equals(string(item()?['columnId']), '<COLUMN_ID_HERE>')))?['value']}
+@{first(filter(item()?['cells'], equals(string(item()?['columnId']), '<COLUMN_ID>')))?['value']}
 ```
 
-**3.3 — Build CSV content**
-- Line 1: Header row (column names — to be defined)
-- Line 2: Data row from this Smartsheet row
+| Variable | Column ID | Notes |
+|---|---|---|
+| `varEmployeeID` | `8551502017679236` | |
+| `varEmployeeFullName` | `388727693070212` | Convert to UPPERCASE in expression |
+| `varPostToLocationID` | `1533107887886212` | 3-digit string, leading zero must be preserved |
+| `varShirtSize` | `2640527506755460` | Full value e.g. `S (code 9991002)` |
+| `varPickedQuantity` | `3794673913778052` | |
+| `varPickedDate` | `6046473727463300` | Format to `dd/MM/yyyy` and `yyyy-MM-dd` separately |
+| `varCreatedDate` | `2863694728875908` | Format to `dd/MM/yyyy` |
 
-**3.4 — Create file in SharePoint**
+**3.3 — Derive Stock Code from Shirt Size**
+
+Parse the 7-digit stock code directly from `varShirtSize` — no Switch needed:
+```
+substring(variables('varShirtSize'), add(indexOf(variables('varShirtSize'), 'code '), 5), 7)
+```
+Store as `varStockCode`.
+
+**3.4 — Build filename**
+```
+concat('STKTRAN_', variables('varPostToLocationID'), '_', variables('varEmployeeID'), '_', formatDateTime(<PickedDate_value>, 'yyyy-MM-dd'), '.txt')
+```
+
+**3.5 — Build CSV content (no header row)**
+
+Concatenate all 14 fields as a single comma-separated string. The output is one data row with no header:
+```
+concat(
+  '',                                                                    ,  Field 1: DOC_HEADS_REFERENCE_NBR (empty)
+  ',', formatDateTime(<PickedDate>, 'dd/MM/yyyy'),                       ,  Field 2: DOC_HEADS_TRANS_DATE
+  ',', variables('varEmployeeID'), ' CLOTHING ORDER',                    ,  Field 3: DOC_HEADS_DETAIL
+  ',S',                                                                  ,  Field 4: TRANS_LINES_LINE_TYPE
+  ',001',                                                                ,  Field 5: DOC_HEADS_STOCK_LOCATION (always 001)
+  ',', variables('varPostToLocationID'),                                  ,  Field 6: TRANS_LINES_STOCK_LOCATION
+  ',', variables('varStockCode'),                                         ,  Field 7: TRANS_LINES_STOCK_CODE
+  ',', variables('varEmployeeID'), ' ', toUpper(variables('varEmployeeFullName')),  ,  Field 8: TRANS_LINES_DESCRIPTION
+  ',', variables('varPickedQuantity'),                                    ,  Field 9: TRANS_LINES_ENTERED_QTY
+  ',', variables('varEmployeeID'),                                        ,  Field 10: TRANS_LINES_USER_FIELD_1
+  ',SHIRT ORDER',                                                        ,  Field 11: TRANS_LINES_USER_FIELD_2
+  ',', formatDateTime(<PickedDate>, 'dd/MM/yyyy'),                       ,  Field 12: TRANS_LINES_USER_FIELD_3
+  ',', formatDateTime(<CreatedDate>, 'dd/MM/yyyy'),                      ,  Field 13: TRANS_LINES_USER_FIELD_4
+  ',', variables('varEmployeeID'), '-', variables('varStockCode')        ,  Field 14: TRANS_LINES_USER_FIELD_6
+)
+```
+
+> Note: Power Automate `concat()` does not accept inline comments — remove the comment text when entering in the portal. The layout above is for readability only.
+
+**3.6 — Create file in SharePoint**
 - Action: `Create file` (SharePoint connector)
 - Site Address: *(SharePoint site URL — to be supplied)*
 - Folder Path: *(target folder path — to be supplied)*
-- File Name: `clothing_order_@{<EmployeeID_value>}_@{variables('varTimestamp')}.csv`
-- File Content: CSV string built in 3.3
+- File Name: output of step 3.4 (e.g. `STKTRAN_014_105676_2026-04-30.txt`)
+- File Content: CSV string built in 3.5
 
-> One file is created per exported row. The filename includes the Employee ID and Brisbane timestamp to ensure uniqueness.
+> One `.txt` file is created per exported row. Content is CSV-formatted with no header row.
 
 ---
 
