@@ -55,14 +55,15 @@ Build a scheduled Power Automate flow that runs daily at 7:00 PM **Brisbane Time
 | 1 | Smartsheet `Exported Transfer` column added (CHECKBOX, ID: `2388194816724868`) | ✅ Done |
 | 2 | CSV file per row — column structure defined in `csv/csv_structure.md` | ✅ Done |
 | 3 | On-premises Data Gateway installed and registered on **PP01-SV06** — see `gateway/gateway_setup.md` | ⬜ To be installed |
-| 4 | UNC path confirmed — folder on OceanicSquare import server that receives `.txt` files | ⬜ To be supplied |
-| 5 | File System connection created in Power Automate (gateway + UNC path + service account) | ⬜ After 3 & 4 done |
-| 6 | Smartsheet API token (from Account > Personal Settings > API Access) | ⬜ To be supplied |
-| 7 | Teams channel ID — Warehouse team | ⬜ To be supplied at build time |
-| 8 | Teams channel IDs — one per Post to Location store | ⬜ To be supplied at build time |
-| 9 | Teams message content — Warehouse notification | ⬜ To be defined at build time |
-| 10 | Teams message content — Post to Location notification | ⬜ To be defined at build time |
-| 11 | Power Automate Premium licence confirmed | ✅ Confirmed |
+| 4 | UNC path confirmed: `\\PPS2012\DataLoad\StkTrans` | ✅ Done |
+| 5 | Service account confirmed: reuse `PRICESPLUS\TenciaCheckSvc` (already has access via Everyone ACE) | ✅ Done |
+| 6 | File System connection created in Power Automate (gateway + UNC path + TenciaCheckSvc) | ⬜ After item 3 done |
+| 7 | Smartsheet API token (from Account > Personal Settings > API Access) | ⬜ To be supplied |
+| 8 | Teams channel ID — Warehouse team | ⬜ To be supplied at build time |
+| 9 | Teams channel IDs — one per Post to Location store | ⬜ To be supplied at build time |
+| 10 | Teams message content — Warehouse notification | ⬜ To be defined at build time |
+| 11 | Teams message content — Post to Location notification | ⬜ To be defined at build time |
+| 12 | Power Automate Premium licence confirmed | ✅ Confirmed |
 
 ---
 
