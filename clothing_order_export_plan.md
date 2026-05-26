@@ -57,7 +57,7 @@ Build a scheduled Power Automate flow that runs daily at 7:00 PM **Brisbane Time
 | 3 | On-premises Data Gateway installed and registered on **PP01-SV06** — see `gateway/gateway_setup.md` | ✅ Done (v3000.318.9, May 2026) |
 | 4 | UNC path confirmed: `\\PPS2012\DataLoad\StkTrans` | ✅ Done |
 | 5 | Service account confirmed: reuse `PRICESPLUS\TenciaCheckSvc` (already has access via Everyone ACE) | ✅ Done |
-| 6 | File System connection created in Power Automate (gateway + UNC path + TenciaCheckSvc) | ⬜ Next step |
+| 6 | File System connection created in Power Automate (gateway + UNC path + TenciaCheckSvc) | ✅ Done — `\\PPS2012\DataLoad\StkTrans` Connected |
 | 7 | Smartsheet API token (from Account > Personal Settings > API Access) | ⬜ To be supplied |
 | 8 | Teams channel ID — Warehouse team | ⬜ To be supplied at build time |
 | 9 | Teams channel IDs — one per Post to Location store | ⬜ To be supplied at build time |
