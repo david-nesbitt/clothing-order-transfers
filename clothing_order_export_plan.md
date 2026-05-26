@@ -54,13 +54,15 @@ Build a scheduled Power Automate flow that runs daily at 7:00 PM **Brisbane Time
 |---|---|---|
 | 1 | Smartsheet `Exported Transfer` column added (CHECKBOX, ID: `2388194816724868`) | ✅ Done |
 | 2 | CSV file per row — column structure defined in `csv/csv_structure.md` | ✅ Done |
-| 3 | SharePoint site URL and target folder path for CSV output | ⬜ To be supplied |
-| 4 | Smartsheet API token (from Account > Personal Settings > API Access) | ⬜ To be supplied |
-| 5 | Teams channel ID — Warehouse team | ⬜ To be supplied at build time |
-| 6 | Teams channel IDs — one per Post to Location store | ⬜ To be supplied at build time |
-| 7 | Teams message content — Warehouse notification | ⬜ To be defined at build time |
-| 8 | Teams message content — Post to Location notification | ⬜ To be defined at build time |
-| 9 | Power Automate Premium licence confirmed | ✅ Confirmed |
+| 3 | On-premises Data Gateway installed and registered on **PP01-SV06** — see `gateway/gateway_setup.md` | ⬜ To be installed |
+| 4 | UNC path confirmed — folder on OceanicSquare import server that receives `.txt` files | ⬜ To be supplied |
+| 5 | File System connection created in Power Automate (gateway + UNC path + service account) | ⬜ After 3 & 4 done |
+| 6 | Smartsheet API token (from Account > Personal Settings > API Access) | ⬜ To be supplied |
+| 7 | Teams channel ID — Warehouse team | ⬜ To be supplied at build time |
+| 8 | Teams channel IDs — one per Post to Location store | ⬜ To be supplied at build time |
+| 9 | Teams message content — Warehouse notification | ⬜ To be defined at build time |
+| 10 | Teams message content — Post to Location notification | ⬜ To be defined at build time |
+| 11 | Power Automate Premium licence confirmed | ✅ Confirmed |
 
 ---
 
@@ -186,14 +188,14 @@ concat(
 
 > Note: Power Automate `concat()` does not accept inline comments — remove the comment text when entering in the portal. The layout above is for readability only.
 
-**3.6 — Create file in SharePoint**
-- Action: `Create file` (SharePoint connector)
-- Site Address: *(SharePoint site URL — to be supplied)*
-- Folder Path: *(target folder path — to be supplied)*
+**3.6 — Create file via File System connector (On-premises Data Gateway)**
+- Action: `Create file` *(File System connector — not SharePoint)*
+- Connection: File System connection on **PP01-SV06-Gateway** (see `gateway/gateway_setup.md`)
+- Folder path: `/` *(root of the connection, which maps to the confirmed UNC path)*
 - File Name: output of step 3.4 (e.g. `STKTRAN_014_105676_2026-04-30.txt`)
 - File Content: CSV string built in 3.5
 
-> One `.txt` file is created per exported row. Content is CSV-formatted with no header row.
+> One `.txt` file is created per exported row. Content is CSV-formatted with no header row. Files land directly in the OceanicSquare import folder via the gateway — no SharePoint involved.
 
 ---
 
@@ -321,7 +323,7 @@ You (or someone with portal access) will apply the steps in the Power Automate p
 
 - **Timezone:** Brisbane is `E. Australia Standard Time` (UTC+10, no daylight saving). All displayed times must use `convertTimeZone(utcNow(), 'UTC', 'E. Australia Standard Time', ...)`. The Recurrence trigger must be set to **09:00 UTC** to fire at 7:00 PM Brisbane time.
 - **One CSV per row:** Each qualifying Smartsheet row produces its own CSV file. Do not combine rows into a single file.
-- **SharePoint output:** Use the SharePoint `Create file` connector action. Site URL and folder path will be supplied.
+- **File output:** Use the **File System** connector action (not SharePoint). Files are written directly to a UNC path on the internal network via the On-premises Data Gateway installed on PP01-SV06. See `gateway/gateway_setup.md` for setup. UNC path to be confirmed.
 - **CSV structure:** Column definitions will be provided before Task 3 is built. Do not assume column content.
 - **Smartsheet API token:** Do not hardcode. Use a Power Automate Connection reference or environment variable.
 - **Cell value lookup:** Smartsheet rows return a `cells` array. Always locate cells by matching `columnId`, never by array position.
