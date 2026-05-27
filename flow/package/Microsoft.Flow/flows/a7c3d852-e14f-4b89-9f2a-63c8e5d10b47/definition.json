@@ -119,9 +119,14 @@
           },
           "runAfter": { "Initialize_varRowUpdates": ["Succeeded"] }
         },
+        "Initialize_varSilentMode": {
+          "type": "InitializeVariable",
+          "inputs": { "variables": [{ "name": "varSilentMode", "type": "boolean", "value": true }] },
+          "runAfter": { "Initialize_varStoreMapping": ["Succeeded"] }
+        },
         "Main_Flow": {
           "type": "Scope",
-          "runAfter": { "Initialize_varStoreMapping": ["Succeeded"] },
+          "runAfter": { "Initialize_varSilentMode": ["Succeeded"] },
           "actions": {
             "Get_Smartsheet": {
               "type": "Http",
@@ -414,6 +419,10 @@
                   "inputs": "@union(body('Select_LocationIDs'), body('Select_LocationIDs'))",
                   "runAfter": { "Select_LocationIDs": ["Succeeded"] }
                 },
+                "Condition_SilentMode": {
+                  "type": "If",
+                  "expression": { "and": [{ "equals": ["@variables('varSilentMode')", "@false"] }] },
+                  "actions": {
                 "Condition_TestMode_Warehouse": {
                   "type": "If",
                   "expression": { "and": [{ "equals": ["@variables('varTestMode')", "@true"] }] },
@@ -461,7 +470,7 @@
                       }
                     }
                   },
-                  "runAfter": { "Compose_UniqueLocations": ["Succeeded"] }
+                  "runAfter": {}
                 },
                 "Apply_to_each_location": {
                   "type": "Foreach",
@@ -584,6 +593,10 @@
                     }
                   },
                   "runAfter": { "Condition_TestMode_Warehouse": ["Succeeded"] }
+                }
+                  },
+                  "else": { "actions": {} },
+                  "runAfter": { "Compose_UniqueLocations": ["Succeeded"] }
                 }
               },
               "else": { "actions": {} },

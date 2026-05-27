@@ -3,12 +3,12 @@
 
 ---
 
-## ⚡ Current Status — End of Session 27/05/2026
+## ⚡ Current Status — 28/05/2026
 
-### What's built and working (v12)
+### What's built and working (v13)
 | Item | Status |
 |---|---|
-| Importable Power Automate package | ✅ `flow/ClothingOrderExport_v12_TEST.zip` |
+| Importable Power Automate package | ✅ `flow/ClothingOrderExport_v13_TEST.zip` |
 | Scheduled trigger — 08:30 UTC (6:30 PM Brisbane) | ✅ In definition |
 | File creation — STKTRAN_*.txt → \\PPS2012\DataLoad\StkTrans | ✅ Tested and working |
 | Smartsheet tick-back (Exported Transfer + Exported Date) | ✅ Tested and working |
@@ -17,13 +17,15 @@
 | Teams failure DM → DavidN@pricesplus.com.au | ✅ Tested and working |
 | Live store channel routing (varStoreMapping lookup) | ✅ Architecture in place, partial mapping |
 | varTestMode flag (true = all posts → Feature Test Site) | ✅ In place |
+| varSilentMode flag (true = export files + tick Smartsheet, skip all Teams posts) | ✅ Added in v13 |
 | Stock code + description in Teams message (bold) | ✅ Working |
 
 ### Flow state right now
 - **Flow is TURNED OFF** in Power Automate (do not turn on until go-live checklist below is complete)
 - **varTestMode = true** — all Teams posts still route to Feature Test Site → General
+- **varSilentMode = true** — Teams notifications suppressed (default safe value; set false for live)
 - **Filter = Picked Quantity equals 100** (test filter) — must be changed to `> 0` before backfill run
-- **Package version:** v12 — `flow/ClothingOrderExport_v12_TEST.zip`
+- **Package version:** v13 — `flow/ClothingOrderExport_v13_TEST.zip`
 
 ### varStoreMapping — mapped so far
 | Store | Name | Mapped |
@@ -38,19 +40,10 @@
 
 ## ⏭️ Next Steps — Resume Here
 
-### Step 1 — Add varSilentMode (backfill option)
-Add a new boolean variable `varSilentMode` to the flow:
-- When **true**: exports files and ticks Smartsheet — **but skips all Teams notifications**
-- When **false**: normal operation including all Teams messages
-
-This is needed for the initial backfill of ~105 existing rows. The stores don't need Teams notifications for historical orders.
-
-**Implementation:** Wrap the Teams notification block (Condition_TestMode_Warehouse + Apply_to_each_location) inside a `Condition_SilentMode` check:
-- `Condition_SilentMode` = `@equals(variables('varSilentMode'), false)` → only post if NOT silent
-
-Add `Initialize_varSilentMode` to the variable chain (after `Initialize_varStoreMapping`):
-- Type: Boolean
-- Default value: `true` (safe default — don't accidentally spam stores)
+### ~~Step 1 — Add varSilentMode (backfill option)~~ ✅ DONE (v13)
+`Initialize_varSilentMode` added after `Initialize_varStoreMapping`, default = `true`.
+`Condition_SilentMode` wraps `Condition_TestMode_Warehouse` + `Apply_to_each_location`.
+When `varSilentMode = true`: exports files and ticks Smartsheet — but skips all Teams notifications.
 
 ### Step 2 — Collect remaining store Teams channel URLs
 Still need channel URLs for these stores (right-click channel in Teams → Get link to channel, paste URL here):
