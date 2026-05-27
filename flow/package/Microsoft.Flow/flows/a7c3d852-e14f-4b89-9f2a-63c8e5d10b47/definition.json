@@ -358,7 +358,10 @@
                           "pickedQty": "@outputs('Compose_PickedQty')"
                         }
                       },
-                      "runAfter": { "Append_RowUpdate": ["Succeeded"] }
+                      "runAfter": {
+                        "Append_RowUpdate": ["Succeeded"],
+                        "Compose_ShirtDescription": ["Succeeded"]
+                      }
                     }
                   },
                   "else": { "actions": {} },
