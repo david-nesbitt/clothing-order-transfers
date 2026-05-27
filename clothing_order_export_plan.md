@@ -5,10 +5,10 @@
 
 ## ⚡ Current Status — 28/05/2026
 
-### What's built and working (v13)
+### What's built and working (v14)
 | Item | Status |
 |---|---|
-| Importable Power Automate package | ✅ `flow/ClothingOrderExport_v13_TEST.zip` |
+| Importable Power Automate package | ✅ `flow/ClothingOrderExport_v14_TEST.zip` |
 | Scheduled trigger — 08:30 UTC (6:30 PM Brisbane) | ✅ In definition |
 | File creation — STKTRAN_*.txt → \\PPS2012\DataLoad\StkTrans | ✅ Tested and working |
 | Smartsheet tick-back (Exported Transfer + Exported Date) | ✅ Tested and working |
@@ -18,6 +18,7 @@
 | Live store channel routing (varStoreMapping lookup) | ✅ Architecture in place, partial mapping |
 | varTestMode flag (true = all posts → Feature Test Site) | ✅ In place |
 | varSilentMode flag (true = export files + tick Smartsheet, skip all Teams posts) | ✅ Added in v13 |
+| All store Teams channels mapped in varStoreMapping (25 stores) | ✅ Added in v14 |
 | Stock code + description in Teams message (bold) | ✅ Working |
 
 ### Flow state right now
@@ -25,16 +26,39 @@
 - **varTestMode = true** — all Teams posts still route to Feature Test Site → General
 - **varSilentMode = true** — Teams notifications suppressed (default safe value; set false for live)
 - **Filter = Picked Quantity equals 100** (test filter) — must be changed to `> 0` before backfill run
-- **Package version:** v13 — `flow/ClothingOrderExport_v13_TEST.zip`
+- **Package version:** v14 — `flow/ClothingOrderExport_v14_TEST.zip`
 
-### varStoreMapping — mapped so far
-| Store | Name | Mapped |
-|---|---|---|
-| 001 | Warehouse DC | ✅ Warehouse Team → General |
-| 002 | Support Office | ✅ Warehouse Team → General |
-| 014 | Blackwater | ✅ Region 1 |
-| 023 | Moranbah | ✅ Region 1 |
-| All others | — | ⬜ Falls back silently (no error, no post) |
+### varStoreMapping — ALL STORES MAPPED ✅
+| Store | Name | Team | Mapped |
+|---|---|---|---|
+| 001 | Warehouse DC | Warehouse Team → General | ✅ |
+| 002 | Support Office | Warehouse Team → General | ✅ |
+| 012 | Bowen | Region 2 | ✅ |
+| 014 | Blackwater | Region 1 | ✅ |
+| 017 | Mossman | Region 2 | ✅ |
+| 018 | Hermit Park | Region 2 | ✅ |
+| 019 | Inverell | Region 1 | ✅ |
+| 021 | Brassall | Region 1 | ✅ |
+| 022 | Bribie Island | Region 1 | ✅ |
+| 023 | Moranbah | Region 1 | ✅ |
+| 026 | Innisfail | Region 2 | ✅ |
+| 027 | Tully | Region 2 | ✅ |
+| 028 | Ingham | Region 2 | ✅ |
+| 029 | Woodlands | Region 2 | ✅ |
+| 031 | Toowoomba | Toowoomba → General | ✅ |
+| 032 | Kingaroy | Region 1 | ✅ |
+| 034 | Muswellbrook | Region 1 | ✅ |
+| 036 | Atherton | Region 2 | ✅ |
+| 037 | Longreach | Region 1 | ✅ |
+| 038 | Charleville | Region 1 | ✅ |
+| 040 | Smithfield | Region 2 | ✅ |
+| 041 | Atherton Overflow | Region 2 | ✅ |
+| 042 | Charters Towers Overflow | Region 2 | ✅ |
+| 043 | Ayr | Region 2 | ✅ |
+| 044 | Mareeba | Region 2 | ✅ |
+| 030 | Charters Towers | — | ❌ Closed |
+| 033 | Willows | — | ❌ Closed |
+| 045 | Calliope | — | ❌ Closed |
 
 ---
 
@@ -45,37 +69,8 @@
 `Condition_SilentMode` wraps `Condition_TestMode_Warehouse` + `Apply_to_each_location`.
 When `varSilentMode = true`: exports files and ticks Smartsheet — but skips all Teams notifications.
 
-### Step 2 — Collect remaining store Teams channel URLs
-Still need channel URLs for these stores (right-click channel in Teams → Get link to channel, paste URL here):
-
-**Region 1** (groupId: `9328e896-1d30-44f9-acd9-7456f322d86b`):
-- [ ] 019 Inverell
-- [ ] 021 Brassall
-- [ ] 022 Bribie Island
-- [ ] 032 Kingaroy
-- [ ] 034 Muswellbrook
-- [ ] 037 Longreach
-- [ ] 038 Charleville
-
-**Region 2** (groupId: unknown — provide any one URL to get it):
-- [ ] 012 Bowen
-- [ ] 017 Mossman
-- [ ] 018 Hermit Park
-- [ ] 026 Innisfail
-- [ ] 027 Tully
-- [ ] 028 Ingham
-- [ ] 029 Woodlands
-- [ ] 036 Atherton
-- [ ] 040 Smithfield
-- [ ] 041 Atherton Overflow
-- [ ] 042 Charters Towers Overflow
-- [ ] 043 Ayr
-- [ ] 044 Mareeba
-
-**Toowoomba team** (separate team — General channel):
-- [ ] 031 Toowoomba
-
-Stores 030 (Charters Towers), 033 (Willows), 045 (Calliope) — **closed, no notification, no mapping needed.**
+### ~~Step 2 — Collect remaining store Teams channel URLs~~ ✅ DONE (v14)
+All 25 active stores mapped. Region 2 groupId: `169c7144-b155-445c-beab-6b176f76ec08`. Toowoomba groupId: `8f5be748-f935-40a7-b3b5-87068317a39b`.
 
 ### Step 3 — Backfill run (all ~105 historic rows, no Teams messages)
 Once varSilentMode is built and the filter is updated:
@@ -157,7 +152,7 @@ Build a scheduled Power Automate flow that runs daily at 6:30 PM **Brisbane Time
 | 6 | File System connection created in Power Automate | ✅ Done — `\\PPS2012\DataLoad\StkTrans` connected |
 | 7 | Smartsheet API token — stored in IT password manager only | ✅ Generated — **never commit to repo** |
 | 8 | Teams: Warehouse Team → General | ✅ IDs in varStoreMapping (001, 002) |
-| 9 | Teams: per-store channel mapping | ⚠️ Partial — 014 and 023 done, rest outstanding (see Step 2 above) |
+| 9 | Teams: per-store channel mapping | ✅ All 25 active stores mapped in varStoreMapping |
 | 10 | Teams message content | ✅ Done |
 | 11 | Power Automate Premium licence | ✅ Confirmed |
 | 12 | Flow package importable and tested | ✅ v12 |
@@ -206,19 +201,40 @@ Compress-Archive -Path "$pkg\*" -DestinationPath $out -CompressionLevel Optimal
 | varRowUpdates | Array | `[]` | Batch Smartsheet row updates |
 | varStoreMapping | Object | See below | Store ID → Teams groupId/channelId lookup |
 
-### varStoreMapping current value
+### varStoreMapping current value — COMPLETE
 ```json
 {
   "001": { "groupId": "e8132bda-7152-45df-b1ca-de0f52a41977", "channelId": "19:7q7EU6zu9oaE54aW9AEnW8xrHSYCq_zDoWXqHyig2_k1@thread.tacv2" },
   "002": { "groupId": "e8132bda-7152-45df-b1ca-de0f52a41977", "channelId": "19:7q7EU6zu9oaE54aW9AEnW8xrHSYCq_zDoWXqHyig2_k1@thread.tacv2" },
+  "012": { "groupId": "169c7144-b155-445c-beab-6b176f76ec08", "channelId": "19:e1e34e6f186a4f009000a58575f0313d@thread.tacv2" },
   "014": { "groupId": "9328e896-1d30-44f9-acd9-7456f322d86b", "channelId": "19:80af764441164fc687c52770e7f57799@thread.tacv2" },
-  "023": { "groupId": "9328e896-1d30-44f9-acd9-7456f322d86b", "channelId": "19:2af021222450490885c65e319e85c6f5@thread.tacv2" }
+  "017": { "groupId": "169c7144-b155-445c-beab-6b176f76ec08", "channelId": "19:c2c93b9a145d4f079610aef952303309@thread.tacv2" },
+  "018": { "groupId": "169c7144-b155-445c-beab-6b176f76ec08", "channelId": "19:1d170dae343a45b38b180331eff0b4ac@thread.tacv2" },
+  "019": { "groupId": "9328e896-1d30-44f9-acd9-7456f322d86b", "channelId": "19:fd9d332a419742ceae35f2e4f83d8e45@thread.tacv2" },
+  "021": { "groupId": "9328e896-1d30-44f9-acd9-7456f322d86b", "channelId": "19:894e2d5d040c4145a76934c9131ea118@thread.tacv2" },
+  "022": { "groupId": "9328e896-1d30-44f9-acd9-7456f322d86b", "channelId": "19:bb00e5550ad04060a334b8b52bc4e1ab@thread.tacv2" },
+  "023": { "groupId": "9328e896-1d30-44f9-acd9-7456f322d86b", "channelId": "19:2af021222450490885c65e319e85c6f5@thread.tacv2" },
+  "026": { "groupId": "169c7144-b155-445c-beab-6b176f76ec08", "channelId": "19:43a358a3ac4b464c9ffdad734a7941b5@thread.tacv2" },
+  "027": { "groupId": "169c7144-b155-445c-beab-6b176f76ec08", "channelId": "19:e883958321c74548827252cc069884ff@thread.tacv2" },
+  "028": { "groupId": "169c7144-b155-445c-beab-6b176f76ec08", "channelId": "19:06c273ba963545509475fc1943a1fbe0@thread.tacv2" },
+  "029": { "groupId": "169c7144-b155-445c-beab-6b176f76ec08", "channelId": "19:093a74730cd2413c8b944f29b9d4c2db@thread.tacv2" },
+  "031": { "groupId": "8f5be748-f935-40a7-b3b5-87068317a39b", "channelId": "19:P7JcTjouRUK-ud2ROb0_nARj24Il3tejaiGttj3BwCw1@thread.tacv2" },
+  "032": { "groupId": "9328e896-1d30-44f9-acd9-7456f322d86b", "channelId": "19:acc31a5832d64dc696620f410a57302c@thread.tacv2" },
+  "034": { "groupId": "9328e896-1d30-44f9-acd9-7456f322d86b", "channelId": "19:bec96c61ae704e2ba14ba64a031a1568@thread.tacv2" },
+  "036": { "groupId": "169c7144-b155-445c-beab-6b176f76ec08", "channelId": "19:c4526d3c05db4b76979ba11c75f24659@thread.tacv2" },
+  "037": { "groupId": "9328e896-1d30-44f9-acd9-7456f322d86b", "channelId": "19:d9e4a6bea74546ed9b387922c16f3410@thread.tacv2" },
+  "038": { "groupId": "9328e896-1d30-44f9-acd9-7456f322d86b", "channelId": "19:ae6455cc120f4f308eec0b2e9411110b@thread.tacv2" },
+  "040": { "groupId": "169c7144-b155-445c-beab-6b176f76ec08", "channelId": "19:d08805c0ed944c4dbf867fe37a81fe3d@thread.tacv2" },
+  "041": { "groupId": "169c7144-b155-445c-beab-6b176f76ec08", "channelId": "19:8c1863eecae64462865d168c51a71f2c@thread.tacv2" },
+  "042": { "groupId": "169c7144-b155-445c-beab-6b176f76ec08", "channelId": "19:fd9906313b7e4252b85af5141b6df7bc@thread.tacv2" },
+  "043": { "groupId": "169c7144-b155-445c-beab-6b176f76ec08", "channelId": "19:635078d638e04fb98d8f11190913721a@thread.tacv2" },
+  "044": { "groupId": "169c7144-b155-445c-beab-6b176f76ec08", "channelId": "19:2c5014fcee0f4a1fae9012ee9b16bda6@thread.tacv2" }
 }
 ```
-Region 1 groupId: `9328e896-1d30-44f9-acd9-7456f322d86b`
 Warehouse Team groupId: `e8132bda-7152-45df-b1ca-de0f52a41977`
-Region 2 groupId: *(unknown — provide any Region 2 channel URL to get it)*
-Toowoomba team groupId: *(unknown — provide Toowoomba → General URL)*
+Region 1 groupId: `9328e896-1d30-44f9-acd9-7456f322d86b`
+Region 2 groupId: `169c7144-b155-445c-beab-6b176f76ec08`
+Toowoomba team groupId: `8f5be748-f935-40a7-b3b5-87068317a39b`
 
 ---
 
@@ -230,31 +246,31 @@ See `teams/teams_mapping.md` for logical mapping.
 |---|---|---|---|---|
 | 001 | Warehouse Distribution Centre | Warehouse Team | General | ✅ Mapped |
 | 002 | Support Office | Warehouse Team | General | ✅ Mapped |
-| 012 | Bowen | Region 2 | 012 Bowen | ⬜ Need URL |
+| 012 | Bowen | Region 2 | 012 Bowen | ✅ Mapped |
 | 014 | Blackwater | Region 1 | 014 Blackwater | ✅ Mapped |
-| 017 | Mossman | Region 2 | 017 Mossman | ⬜ Need URL |
-| 018 | Hermit Park | Region 2 | 018 Hermit Park | ⬜ Need URL |
-| 019 | Inverell | Region 1 | 019 Inverell | ⬜ Need URL |
-| 021 | Brassall | Region 1 | 021 Brassall | ⬜ Need URL |
-| 022 | Bribie Island | Region 1 | 022 Bribie Island | ⬜ Need URL |
+| 017 | Mossman | Region 2 | 017 Mossman | ✅ Mapped |
+| 018 | Hermit Park | Region 2 | 018 Hermit Park | ✅ Mapped |
+| 019 | Inverell | Region 1 | 019 Inverell | ✅ Mapped |
+| 021 | Brassall | Region 1 | 021 Brassall | ✅ Mapped |
+| 022 | Bribie Island | Region 1 | 022 Bribie Island | ✅ Mapped |
 | 023 | Moranbah | Region 1 | 023 Moranbah | ✅ Mapped |
-| 026 | Innisfail | Region 2 | 026 Innisfail | ⬜ Need URL |
-| 027 | Tully | Region 2 | 027 Tully | ⬜ Need URL |
-| 028 | Ingham | Region 2 | 028 Ingham | ⬜ Need URL |
-| 029 | Woodlands | Region 2 | 029 Woodlands | ⬜ Need URL |
+| 026 | Innisfail | Region 2 | 026 Innisfail | ✅ Mapped |
+| 027 | Tully | Region 2 | 027 Tully | ✅ Mapped |
+| 028 | Ingham | Region 2 | 028 Ingham | ✅ Mapped |
+| 029 | Woodlands | Region 2 | 029 Woodlands | ✅ Mapped |
 | 030 | Charters Towers | — | — | ❌ Closed — no notification |
-| 031 | Toowoomba | Toowoomba | General | ⬜ Need URL |
-| 032 | Kingaroy | Region 1 | 032 Kingaroy | ⬜ Need URL |
+| 031 | Toowoomba | Toowoomba | General | ✅ Mapped |
+| 032 | Kingaroy | Region 1 | 032 Kingaroy | ✅ Mapped |
 | 033 | Willows | — | — | ❌ Closed — no notification |
-| 034 | Muswellbrook | Region 1 | 034 Muswellbrook | ⬜ Need URL |
-| 036 | Atherton | Region 2 | 036 Atherton | ⬜ Need URL |
-| 037 | Longreach | Region 1 | 037 Longreach | ⬜ Need URL |
-| 038 | Charleville | Region 1 | 038 Charleville | ⬜ Need URL |
-| 040 | Smithfield | Region 2 | 040 Smithfield | ⬜ Need URL |
-| 041 | Atherton Overflow | Region 2 | 041 Overflow Atherton | ⬜ Need URL |
-| 042 | Charters Towers Overflow | Region 2 | 042 Overflow Charters Towers | ⬜ Need URL |
-| 043 | Ayr | Region 2 | 043 Ayr | ⬜ Need URL |
-| 044 | Mareeba | Region 2 | 044 Mareeba | ⬜ Need URL |
+| 034 | Muswellbrook | Region 1 | 034 Muswellbrook | ✅ Mapped |
+| 036 | Atherton | Region 2 | 036 Atherton | ✅ Mapped |
+| 037 | Longreach | Region 1 | 037 Longreach | ✅ Mapped |
+| 038 | Charleville | Region 1 | 038 Charleville | ✅ Mapped |
+| 040 | Smithfield | Region 2 | 040 Smithfield | ✅ Mapped |
+| 041 | Atherton Overflow | Region 2 | 041 Overflow Atherton | ✅ Mapped |
+| 042 | Charters Towers Overflow | Region 2 | 042 Overflow Charters Towers | ✅ Mapped |
+| 043 | Ayr | Region 2 | 043 Ayr | ✅ Mapped |
+| 044 | Mareeba | Region 2 | 044 Mareeba | ✅ Mapped |
 | 045 | Calliope | — | — | ❌ Closed — no notification |
 
 ---
