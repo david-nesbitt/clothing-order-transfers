@@ -103,9 +103,24 @@
           "inputs": { "variables": [{ "name": "varRowUpdates", "type": "array", "value": [] }] },
           "runAfter": { "Initialize_varFileNameList": ["Succeeded"] }
         },
+        "Initialize_varStoreMapping": {
+          "type": "InitializeVariable",
+          "inputs": {
+            "variables": [{
+              "name": "varStoreMapping",
+              "type": "object",
+              "value": {
+                "001": { "groupId": "e8132bda-7152-45df-b1ca-de0f52a41977", "channelId": "19:7q7EU6zu9oaE54aW9AEnW8xrHSYCq_zDoWXqHyig2_k1@thread.tacv2" },
+                "002": { "groupId": "e8132bda-7152-45df-b1ca-de0f52a41977", "channelId": "19:7q7EU6zu9oaE54aW9AEnW8xrHSYCq_zDoWXqHyig2_k1@thread.tacv2" },
+                "014": { "groupId": "9328e896-1d30-44f9-acd9-7456f322d86b", "channelId": "19:80af764441164fc687c52770e7f57799@thread.tacv2" }
+              }
+            }]
+          },
+          "runAfter": { "Initialize_varRowUpdates": ["Succeeded"] }
+        },
         "Main_Flow": {
           "type": "Scope",
-          "runAfter": { "Initialize_varRowUpdates": ["Succeeded"] },
+          "runAfter": { "Initialize_varStoreMapping": ["Succeeded"] },
           "actions": {
             "Get_Smartsheet": {
               "type": "Http",
@@ -510,10 +525,53 @@
                             },
                             "else": {
                               "actions": {
-                                "Post_Store_Live_TODO": {
+                                "Compose_Store_GroupId": {
                                   "type": "Compose",
-                                  "inputs": "TODO: Replace with Teams Post for location @{items('Apply_to_each_location')} before go-live. See teams/teams_mapping.md.",
+                                  "inputs": "@variables('varStoreMapping')?[string(items('Apply_to_each_location'))]?['groupId']",
                                   "runAfter": {}
+                                },
+                                "Compose_Store_ChannelId": {
+                                  "type": "Compose",
+                                  "inputs": "@variables('varStoreMapping')?[string(items('Apply_to_each_location'))]?['channelId']",
+                                  "runAfter": {}
+                                },
+                                "Condition_Store_Is_Mapped": {
+                                  "type": "If",
+                                  "expression": "@not(equals(outputs('Compose_Store_GroupId'), null))",
+                                  "actions": {
+                                    "Post_Store_Live": {
+                                      "type": "OpenApiConnection",
+                                      "inputs": {
+                                        "parameters": {
+                                          "poster": "Flow bot",
+                                          "location": "Channel",
+                                          "body/recipient/groupId": "@outputs('Compose_Store_GroupId')",
+                                          "body/recipient/channelId": "@outputs('Compose_Store_ChannelId')",
+                                          "body/messageBody": "<p>Picked clothing orders have been exported as Transfers.</p><p><strong>@{variables('varBrisbaneTime')}</strong></p><p>The following clothing orders have been picked and will be delivered on your store's next pallet delivery:</p><p>@{outputs('Compose_EmployeeList')}</p><p>Please make sure that once you receive them, you sell them to the employee via Point of Sale process as per the quantity and prices listed on the delivery note. All shirts MUST be purchased by the employee.</p>"
+                                        },
+                                        "host": {
+                                          "apiId": "/providers/Microsoft.PowerApps/apis/shared_teams",
+                                          "connectionName": "shared_teams",
+                                          "operationId": "PostMessageToConversation"
+                                        },
+                                        "authentication": "@parameters('$authentication')"
+                                      },
+                                      "runAfter": {}
+                                    }
+                                  },
+                                  "else": {
+                                    "actions": {
+                                      "Compose_Store_Not_Mapped": {
+                                        "type": "Compose",
+                                        "inputs": "Store @{items('Apply_to_each_location')} not yet in varStoreMapping — no live notification sent.",
+                                        "runAfter": {}
+                                      }
+                                    }
+                                  },
+                                  "runAfter": {
+                                    "Compose_Store_GroupId": ["Succeeded"],
+                                    "Compose_Store_ChannelId": ["Succeeded"]
+                                  }
                                 }
                               }
                             },
