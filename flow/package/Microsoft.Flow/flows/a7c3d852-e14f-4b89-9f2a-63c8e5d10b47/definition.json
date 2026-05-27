@@ -25,7 +25,6 @@
       "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
       "contentVersion": "1.0.0.0",
       "parameters": {
-        "$connections": { "defaultValue": {}, "type": "Object" },
         "$authentication": { "defaultValue": {}, "type": "SecureObject" }
       },
       "triggers": {
@@ -269,20 +268,20 @@
                       }
                     },
                     "Create_File": {
-                      "type": "ApiConnection",
+                      "type": "OpenApiConnection",
                       "inputs": {
                         "host": {
-                          "connection": {
-                            "name": "@parameters('$connections')['shared_filesystem_1']['connectionId']"
-                          }
+                          "connectionName": "shared_filesystem_1",
+                          "operationId": "CreateFile",
+                          "apiId": "/providers/Microsoft.PowerApps/apis/shared_filesystem"
                         },
-                        "method": "post",
-                        "path": "/datasets/@{encodeURIComponent(encodeURIComponent('\\\\PPS2012\\DataLoad\\StkTrans'))}/files",
-                        "queries": {
+                        "parameters": {
+                          "dataset": "\\\\PPS2012\\DataLoad\\StkTrans",
                           "folderPath": "/",
-                          "name": "@{outputs('Compose_FileName')}"
+                          "name": "@outputs('Compose_FileName')",
+                          "body": "@outputs('Compose_CSVContent')"
                         },
-                        "body": "@outputs('Compose_CSVContent')"
+                        "authentication": "@parameters('$authentication')"
                       },
                       "runAfter": { "Compose_CSVContent": ["Succeeded"] }
                     },
@@ -341,21 +340,23 @@
                   },
                   "actions": {
                     "Post_Warehouse_Test": {
-                      "type": "ApiConnection",
+                      "type": "OpenApiConnection",
                       "inputs": {
                         "host": {
-                          "connection": {
-                            "name": "@parameters('$connections')['shared_teams_1']['connectionId']"
-                          }
+                          "connectionName": "shared_teams_1",
+                          "operationId": "PostMessageToConversation",
+                          "apiId": "/providers/Microsoft.PowerApps/apis/shared_teams"
                         },
-                        "method": "post",
-                        "path": "/beta/teams/@{encodeURIComponent('9271f6a0-9033-4f48-95b4-651e0ee89b33')}/channels/@{encodeURIComponent('19:aSON0t2WsWaPWR5n1n42gC_UYS7D3kdGWOAneDvuLJQ1@thread.tacv2')}/messages",
-                        "body": {
-                          "body": {
-                            "contentType": "html",
-                            "content": "<p>[TEST MODE] Picked clothing orders have been exported as Transfers.</p><p><strong>@{variables('varBrisbaneTime')}</strong> &nbsp; @{length(variables('varExportRows'))} transfer file(s)</p><p>@{replace(variables('varFileNameList'), '\n', '<br/>')}</p>"
-                          }
-                        }
+                        "parameters": {
+                          "poster": "Flow bot",
+                          "location": "Channel",
+                          "body/recipient": {
+                            "groupId": "9271f6a0-9033-4f48-95b4-651e0ee89b33",
+                            "channelId": "19:aSON0t2WsWaPWR5n1n42gC_UYS7D3kdGWOAneDvuLJQ1@thread.tacv2"
+                          },
+                          "body/messageBody": "<p>[TEST MODE] Picked clothing orders have been exported as Transfers.</p><p><strong>@{variables('varBrisbaneTime')}</strong> &nbsp; @{length(variables('varExportRows'))} transfer file(s)</p><p>@{replace(variables('varFileNameList'), '\n', '<br/>')}</p>"
+                        },
+                        "authentication": "@parameters('$authentication')"
                       },
                       "runAfter": {}
                     }
@@ -363,21 +364,23 @@
                   "else": {
                     "actions": {
                       "Post_Warehouse_Live": {
-                        "type": "ApiConnection",
+                        "type": "OpenApiConnection",
                         "inputs": {
                           "host": {
-                            "connection": {
-                              "name": "@parameters('$connections')['shared_teams_1']['connectionId']"
-                            }
+                            "connectionName": "shared_teams_1",
+                            "operationId": "PostMessageToConversation",
+                            "apiId": "/providers/Microsoft.PowerApps/apis/shared_teams"
                           },
-                          "method": "post",
-                          "path": "/beta/teams/@{encodeURIComponent('e8132bda-7152-45df-b1ca-de0f52a41977')}/channels/@{encodeURIComponent('19:7q7EU6zu9oaE54aW9AEnW8xrHSYCq_zDoWXqHyig2_k1@thread.tacv2')}/messages",
-                          "body": {
-                            "body": {
-                              "contentType": "html",
-                              "content": "<p>Picked clothing orders have been exported as Transfers.</p><p><strong>@{variables('varBrisbaneTime')}</strong> &nbsp; @{length(variables('varExportRows'))} transfer file(s)</p><p>@{replace(variables('varFileNameList'), '\n', '<br/>')}</p>"
-                            }
-                          }
+                          "parameters": {
+                            "poster": "Flow bot",
+                            "location": "Channel",
+                            "body/recipient": {
+                              "groupId": "e8132bda-7152-45df-b1ca-de0f52a41977",
+                              "channelId": "19:7q7EU6zu9oaE54aW9AEnW8xrHSYCq_zDoWXqHyig2_k1@thread.tacv2"
+                            },
+                            "body/messageBody": "<p>Picked clothing orders have been exported as Transfers.</p><p><strong>@{variables('varBrisbaneTime')}</strong> &nbsp; @{length(variables('varExportRows'))} transfer file(s)</p><p>@{replace(variables('varFileNameList'), '\n', '<br/>')}</p>"
+                          },
+                          "authentication": "@parameters('$authentication')"
                         },
                         "runAfter": {}
                       }
@@ -429,21 +432,23 @@
                             },
                             "actions": {
                               "Post_Store_Test": {
-                                "type": "ApiConnection",
+                                "type": "OpenApiConnection",
                                 "inputs": {
                                   "host": {
-                                    "connection": {
-                                      "name": "@parameters('$connections')['shared_teams_1']['connectionId']"
-                                    }
+                                    "connectionName": "shared_teams_1",
+                                    "operationId": "PostMessageToConversation",
+                                    "apiId": "/providers/Microsoft.PowerApps/apis/shared_teams"
                                   },
-                                  "method": "post",
-                                  "path": "/beta/teams/@{encodeURIComponent('9271f6a0-9033-4f48-95b4-651e0ee89b33')}/channels/@{encodeURIComponent('19:aSON0t2WsWaPWR5n1n42gC_UYS7D3kdGWOAneDvuLJQ1@thread.tacv2')}/messages",
-                                  "body": {
-                                    "body": {
-                                      "contentType": "html",
-                                      "content": "<p>[TEST MODE — Store: @{items('Apply_to_each_location')}] The following clothing orders have been picked and will be delivered on your store's next pallet delivery:</p><p>@{outputs('Compose_EmployeeList')}</p><p>Please make sure that once you receive them, you sell them to the employee via Point of Sale process as per the quantity and prices listed on the delivery note. All shirts MUST be purchased by the employee.</p>"
-                                    }
-                                  }
+                                  "parameters": {
+                                    "poster": "Flow bot",
+                                    "location": "Channel",
+                                    "body/recipient": {
+                                      "groupId": "9271f6a0-9033-4f48-95b4-651e0ee89b33",
+                                      "channelId": "19:aSON0t2WsWaPWR5n1n42gC_UYS7D3kdGWOAneDvuLJQ1@thread.tacv2"
+                                    },
+                                    "body/messageBody": "<p>[TEST MODE — Store: @{items('Apply_to_each_location')}] The following clothing orders have been picked and will be delivered on your store's next pallet delivery:</p><p>@{outputs('Compose_EmployeeList')}</p><p>Please make sure that once you receive them, you sell them to the employee via Point of Sale process as per the quantity and prices listed on the delivery note. All shirts MUST be purchased by the employee.</p>"
+                                  },
+                                  "authentication": "@parameters('$authentication')"
                                 },
                                 "runAfter": {}
                               }

@@ -1,5 +1,10 @@
 {
   "schema": "1.0",
+  "publishDetails": {
+    "publishDate": "2026-05-27T00:00:00Z",
+    "publisherName": "David Nesbitt",
+    "publisherVersion": "1.0.0.0"
+  },
   "details": {
     "displayName": "Clothing Order Export — Daily 7PM Brisbane",
     "description": "Exports qualifying clothing orders from Smartsheet as TXT files to \\\\PPS2012\\DataLoad\\StkTrans via On-premises Data Gateway, updates Smartsheet, sends Teams notifications, and raises a TeamsWork ticket on failure.",
