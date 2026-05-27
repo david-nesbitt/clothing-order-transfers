@@ -406,7 +406,7 @@
                           "location": "Channel",
                           "body/recipient/groupId": "9271f6a0-9033-4f48-95b4-651e0ee89b33",
                           "body/recipient/channelId": "19:aSON0t2WsWaPWR5n1n42gC_UYS7D3kdGWOAneDvuLJQ1@thread.tacv2",
-                          "body/messageBody": "<p>[TEST MODE] Picked clothing orders have been exported as Transfers.</p><p><strong>@{variables('varBrisbaneTime')}</strong> &nbsp; @{length(variables('varExportRows'))} transfer file(s)</p><p>@{replace(variables('varFileNameList'), '\n', '<br/>')}</p>"
+                          "body/messageBody": "<p>[TEST MODE] Picked clothing orders have been exported as Transfers.</p><p><strong>@{variables('varBrisbaneTime')}</strong> &nbsp; @{length(variables('varExportRows'))} transfer file(s)</p><p>@{replace(variables('varFileNameList'), decodeUriComponent('%0A'), '<br/>')}</p>"
                         },
                         "host": {
                           "apiId": "/providers/Microsoft.PowerApps/apis/shared_teams",
@@ -428,7 +428,7 @@
                             "location": "Channel",
                             "body/recipient/groupId": "e8132bda-7152-45df-b1ca-de0f52a41977",
                             "body/recipient/channelId": "19:7q7EU6zu9oaE54aW9AEnW8xrHSYCq_zDoWXqHyig2_k1@thread.tacv2",
-                            "body/messageBody": "<p>Picked clothing orders have been exported as Transfers.</p><p><strong>@{variables('varBrisbaneTime')}</strong> &nbsp; @{length(variables('varExportRows'))} transfer file(s)</p><p>@{replace(variables('varFileNameList'), '\n', '<br/>')}</p>"
+                            "body/messageBody": "<p>Picked clothing orders have been exported as Transfers.</p><p><strong>@{variables('varBrisbaneTime')}</strong> &nbsp; @{length(variables('varExportRows'))} transfer file(s)</p><p>@{replace(variables('varFileNameList'), decodeUriComponent('%0A'), '<br/>')}</p>"
                           },
                           "host": {
                             "apiId": "/providers/Microsoft.PowerApps/apis/shared_teams",
