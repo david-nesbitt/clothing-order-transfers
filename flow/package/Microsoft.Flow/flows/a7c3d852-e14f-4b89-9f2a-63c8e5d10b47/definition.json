@@ -1,0 +1,503 @@
+{
+  "name": "a7c3d852-e14f-4b89-9f2a-63c8e5d10b47",
+  "id": "a7c3d852-e14f-4b89-9f2a-63c8e5d10b47",
+  "type": "Microsoft.Flow/flows",
+  "properties": {
+    "displayName": "Clothing Order Export — Daily 7PM Brisbane",
+    "description": "Exports qualifying clothing orders from Smartsheet as TXT files via On-premises Data Gateway, updates Smartsheet, sends Teams notifications, raises TeamsWork ticket on failure.",
+    "connectionReferences": {
+      "shared_filesystem_1": {
+        "runtimeSource": "embedded",
+        "connection": {
+          "id": "/providers/Microsoft.PowerApps/apis/shared_filesystem/connections/ce2bbe4bdbbe49b4a80adb2879679f90"
+        },
+        "api": { "name": "shared_filesystem" }
+      },
+      "shared_teams_1": {
+        "runtimeSource": "embedded",
+        "connection": {
+          "id": "/providers/Microsoft.PowerApps/apis/shared_teams/connections/shared-teams-f736e2e4-848d-4115-a112-df46e497f6e0"
+        },
+        "api": { "name": "shared_teams" }
+      }
+    },
+    "definition": {
+      "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+      "contentVersion": "1.0.0.0",
+      "parameters": {
+        "$connections": { "defaultValue": {}, "type": "Object" },
+        "$authentication": { "defaultValue": {}, "type": "SecureObject" }
+      },
+      "triggers": {
+        "Recurrence": {
+          "type": "Recurrence",
+          "recurrence": {
+            "frequency": "Day",
+            "interval": 1,
+            "schedule": { "hours": ["9"], "minutes": [0] },
+            "timeZone": "UTC"
+          }
+        }
+      },
+      "actions": {
+        "Initialize_varSheetId": {
+          "type": "InitializeVariable",
+          "inputs": {
+            "variables": [{ "name": "varSheetId", "type": "string", "value": "5041000518995844" }]
+          },
+          "runAfter": {}
+        },
+        "Initialize_varAPIToken": {
+          "type": "InitializeVariable",
+          "inputs": {
+            "variables": [{ "name": "varAPIToken", "type": "string", "value": "PASTE_SMARTSHEET_API_TOKEN_HERE" }]
+          },
+          "runAfter": { "Initialize_varSheetId": ["Succeeded"] }
+        },
+        "Initialize_varExportedColumnId": {
+          "type": "InitializeVariable",
+          "inputs": {
+            "variables": [{ "name": "varExportedColumnId", "type": "string", "value": "2388194816724868" }]
+          },
+          "runAfter": { "Initialize_varAPIToken": ["Succeeded"] }
+        },
+        "Initialize_varExportedDateColumnId": {
+          "type": "InitializeVariable",
+          "inputs": {
+            "variables": [{ "name": "varExportedDateColumnId", "type": "string", "value": "7514863571341188" }]
+          },
+          "runAfter": { "Initialize_varExportedColumnId": ["Succeeded"] }
+        },
+        "Initialize_varExportRows": {
+          "type": "InitializeVariable",
+          "inputs": {
+            "variables": [{ "name": "varExportRows", "type": "array", "value": [] }]
+          },
+          "runAfter": { "Initialize_varExportedDateColumnId": ["Succeeded"] }
+        },
+        "Initialize_varBrisbaneTime": {
+          "type": "InitializeVariable",
+          "inputs": {
+            "variables": [{ "name": "varBrisbaneTime", "type": "string", "value": "@{convertTimeZone(utcNow(), 'UTC', 'E. Australia Standard Time', 'dd/MM/yyyy HH:mm')}" }]
+          },
+          "runAfter": { "Initialize_varExportRows": ["Succeeded"] }
+        },
+        "Initialize_varBrisbaneDate": {
+          "type": "InitializeVariable",
+          "inputs": {
+            "variables": [{ "name": "varBrisbaneDate", "type": "string", "value": "@{convertTimeZone(utcNow(), 'UTC', 'E. Australia Standard Time', 'yyyy-MM-dd')}" }]
+          },
+          "runAfter": { "Initialize_varBrisbaneTime": ["Succeeded"] }
+        },
+        "Initialize_varTimestamp": {
+          "type": "InitializeVariable",
+          "inputs": {
+            "variables": [{ "name": "varTimestamp", "type": "string", "value": "@{convertTimeZone(utcNow(), 'UTC', 'E. Australia Standard Time', 'yyyyMMdd_HHmm')}" }]
+          },
+          "runAfter": { "Initialize_varBrisbaneDate": ["Succeeded"] }
+        },
+        "Initialize_varTestMode": {
+          "type": "InitializeVariable",
+          "inputs": {
+            "variables": [{ "name": "varTestMode", "type": "boolean", "value": true }]
+          },
+          "runAfter": { "Initialize_varTimestamp": ["Succeeded"] }
+        },
+        "Initialize_varFileNameList": {
+          "type": "InitializeVariable",
+          "inputs": {
+            "variables": [{ "name": "varFileNameList", "type": "string", "value": "" }]
+          },
+          "runAfter": { "Initialize_varTestMode": ["Succeeded"] }
+        },
+        "Initialize_varTeamsWorkAPIKey": {
+          "type": "InitializeVariable",
+          "inputs": {
+            "variables": [{ "name": "varTeamsWorkAPIKey", "type": "string", "value": "PASTE_TEAMSWORK_API_KEY_HERE" }]
+          },
+          "runAfter": { "Initialize_varFileNameList": ["Succeeded"] }
+        },
+        "Initialize_varRowUpdates": {
+          "type": "InitializeVariable",
+          "inputs": {
+            "variables": [{ "name": "varRowUpdates", "type": "array", "value": [] }]
+          },
+          "runAfter": { "Initialize_varTeamsWorkAPIKey": ["Succeeded"] }
+        },
+        "Main_Flow": {
+          "type": "Scope",
+          "runAfter": { "Initialize_varRowUpdates": ["Succeeded"] },
+          "actions": {
+            "Get_Smartsheet": {
+              "type": "Http",
+              "inputs": {
+                "method": "GET",
+                "uri": "https://api.smartsheet.com/2.0/sheets/@{variables('varSheetId')}?includeAll=true",
+                "headers": {
+                  "Authorization": "Bearer @{variables('varAPIToken')}",
+                  "Content-Type": "application/json"
+                }
+              },
+              "runAfter": {}
+            },
+            "Parse_Sheet_Response": {
+              "type": "ParseJson",
+              "inputs": {
+                "content": "@body('Get_Smartsheet')",
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "rows": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": { "type": "integer" },
+                          "cells": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "columnId": { "type": "integer" },
+                                "value": {}
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              "runAfter": { "Get_Smartsheet": ["Succeeded"] }
+            },
+            "Filter_Qualifying_Rows": {
+              "type": "Query",
+              "inputs": {
+                "from": "@body('Parse_Sheet_Response')?['rows']",
+                "where": "@and(greater(int(coalesce(string(first(filter(item()?['cells'], equals(string(item()?['columnId']), '3794673913778052')))?['value']), '0')), 0), not(equals(coalesce(first(filter(item()?['cells'], equals(string(item()?['columnId']), '2388194816724868')))?['value'], false), true)))"
+              },
+              "runAfter": { "Parse_Sheet_Response": ["Succeeded"] }
+            },
+            "Set_varExportRows": {
+              "type": "SetVariable",
+              "inputs": {
+                "name": "varExportRows",
+                "value": "@body('Filter_Qualifying_Rows')"
+              },
+              "runAfter": { "Filter_Qualifying_Rows": ["Succeeded"] }
+            },
+            "Condition_Any_Rows": {
+              "type": "If",
+              "expression": {
+                "and": [{ "greater": ["@length(variables('varExportRows'))", 0] }]
+              },
+              "actions": {
+                "Apply_to_each_row": {
+                  "type": "Foreach",
+                  "foreach": "@variables('varExportRows')",
+                  "actions": {
+                    "Compose_EmployeeID": {
+                      "type": "Compose",
+                      "inputs": "@string(first(filter(item()?['cells'], equals(string(item()?['columnId']), '8551502017679236')))?['value'])",
+                      "runAfter": {}
+                    },
+                    "Compose_EmployeeFullName": {
+                      "type": "Compose",
+                      "inputs": "@string(first(filter(item()?['cells'], equals(string(item()?['columnId']), '388727693070212')))?['value'])",
+                      "runAfter": {}
+                    },
+                    "Compose_PostToLocationID": {
+                      "type": "Compose",
+                      "inputs": "@string(first(filter(item()?['cells'], equals(string(item()?['columnId']), '1533107887886212')))?['value'])",
+                      "runAfter": {}
+                    },
+                    "Compose_ShirtSize": {
+                      "type": "Compose",
+                      "inputs": "@string(first(filter(item()?['cells'], equals(string(item()?['columnId']), '2640527506755460')))?['value'])",
+                      "runAfter": {}
+                    },
+                    "Compose_PickedQty": {
+                      "type": "Compose",
+                      "inputs": "@string(first(filter(item()?['cells'], equals(string(item()?['columnId']), '3794673913778052')))?['value'])",
+                      "runAfter": {}
+                    },
+                    "Compose_PickedDateISO": {
+                      "type": "Compose",
+                      "inputs": "@string(first(filter(item()?['cells'], equals(string(item()?['columnId']), '6046473727463300')))?['value'])",
+                      "runAfter": {}
+                    },
+                    "Compose_CreatedDateISO": {
+                      "type": "Compose",
+                      "inputs": "@string(first(filter(item()?['cells'], equals(string(item()?['columnId']), '2863694728875908')))?['value'])",
+                      "runAfter": {}
+                    },
+                    "Compose_StockCode": {
+                      "type": "Compose",
+                      "inputs": "@substring(outputs('Compose_ShirtSize'), add(indexOf(outputs('Compose_ShirtSize'), 'code '), 5), 7)",
+                      "runAfter": { "Compose_ShirtSize": ["Succeeded"] }
+                    },
+                    "Compose_RowUpdate": {
+                      "type": "Compose",
+                      "inputs": {
+                        "id": "@item()?['id']",
+                        "cells": [
+                          { "columnId": 2388194816724868, "value": true },
+                          { "columnId": 7514863571341188, "value": "@variables('varBrisbaneDate')" }
+                        ]
+                      },
+                      "runAfter": {}
+                    },
+                    "Compose_FileName": {
+                      "type": "Compose",
+                      "inputs": "@concat('STKTRAN_', outputs('Compose_PostToLocationID'), '_', outputs('Compose_EmployeeID'), '_', formatDateTime(outputs('Compose_PickedDateISO'), 'yyyy-MM-dd'), '.txt')",
+                      "runAfter": {
+                        "Compose_EmployeeID": ["Succeeded"],
+                        "Compose_PostToLocationID": ["Succeeded"],
+                        "Compose_PickedDateISO": ["Succeeded"],
+                        "Compose_StockCode": ["Succeeded"]
+                      }
+                    },
+                    "Compose_CSVContent": {
+                      "type": "Compose",
+                      "inputs": "@concat(',', formatDateTime(outputs('Compose_PickedDateISO'), 'dd/MM/yyyy'), ',', outputs('Compose_EmployeeID'), ' CLOTHING ORDER,S,001,', outputs('Compose_PostToLocationID'), ',', outputs('Compose_StockCode'), ',', outputs('Compose_EmployeeID'), ' ', toUpper(outputs('Compose_EmployeeFullName')), ',', outputs('Compose_PickedQty'), ',', outputs('Compose_EmployeeID'), ',SHIRT ORDER,', formatDateTime(outputs('Compose_PickedDateISO'), 'dd/MM/yyyy'), ',', formatDateTime(outputs('Compose_CreatedDateISO'), 'dd/MM/yyyy'), ',', outputs('Compose_EmployeeID'), '-', outputs('Compose_StockCode'))",
+                      "runAfter": {
+                        "Compose_FileName": ["Succeeded"],
+                        "Compose_EmployeeFullName": ["Succeeded"],
+                        "Compose_PickedQty": ["Succeeded"],
+                        "Compose_CreatedDateISO": ["Succeeded"]
+                      }
+                    },
+                    "Create_File": {
+                      "type": "ApiConnection",
+                      "inputs": {
+                        "host": {
+                          "connection": {
+                            "name": "@parameters('$connections')['shared_filesystem_1']['connectionId']"
+                          }
+                        },
+                        "method": "post",
+                        "path": "/datasets/@{encodeURIComponent(encodeURIComponent('\\\\PPS2012\\DataLoad\\StkTrans'))}/files",
+                        "queries": {
+                          "folderPath": "/",
+                          "name": "@{outputs('Compose_FileName')}"
+                        },
+                        "body": "@outputs('Compose_CSVContent')"
+                      },
+                      "runAfter": { "Compose_CSVContent": ["Succeeded"] }
+                    },
+                    "Append_FileName_to_List": {
+                      "type": "AppendToStringVariable",
+                      "inputs": {
+                        "name": "varFileNameList",
+                        "value": "@{outputs('Compose_FileName')}\n"
+                      },
+                      "runAfter": { "Create_File": ["Succeeded"] }
+                    },
+                    "Append_RowUpdate": {
+                      "type": "AppendToArrayVariable",
+                      "inputs": {
+                        "name": "varRowUpdates",
+                        "value": "@outputs('Compose_RowUpdate')"
+                      },
+                      "runAfter": {
+                        "Append_FileName_to_List": ["Succeeded"],
+                        "Compose_RowUpdate": ["Succeeded"]
+                      }
+                    }
+                  },
+                  "runAfter": {}
+                },
+                "HTTP_Update_Smartsheet": {
+                  "type": "Http",
+                  "inputs": {
+                    "method": "PUT",
+                    "uri": "https://api.smartsheet.com/2.0/sheets/@{variables('varSheetId')}/rows",
+                    "headers": {
+                      "Authorization": "Bearer @{variables('varAPIToken')}",
+                      "Content-Type": "application/json"
+                    },
+                    "body": "@variables('varRowUpdates')"
+                  },
+                  "runAfter": { "Apply_to_each_row": ["Succeeded"] }
+                },
+                "Select_LocationIDs": {
+                  "type": "Select",
+                  "inputs": {
+                    "from": "@variables('varExportRows')",
+                    "select": "@string(first(filter(item()?['cells'], equals(string(item()?['columnId']), '1533107887886212')))?['value'])"
+                  },
+                  "runAfter": { "HTTP_Update_Smartsheet": ["Succeeded"] }
+                },
+                "Compose_UniqueLocations": {
+                  "type": "Compose",
+                  "inputs": "@union(body('Select_LocationIDs'), body('Select_LocationIDs'))",
+                  "runAfter": { "Select_LocationIDs": ["Succeeded"] }
+                },
+                "Condition_TestMode_Warehouse": {
+                  "type": "If",
+                  "expression": {
+                    "and": [{ "equals": ["@variables('varTestMode')", "@true"] }]
+                  },
+                  "actions": {
+                    "Post_Warehouse_Test": {
+                      "type": "ApiConnection",
+                      "inputs": {
+                        "host": {
+                          "connection": {
+                            "name": "@parameters('$connections')['shared_teams_1']['connectionId']"
+                          }
+                        },
+                        "method": "post",
+                        "path": "/beta/teams/@{encodeURIComponent('9271f6a0-9033-4f48-95b4-651e0ee89b33')}/channels/@{encodeURIComponent('19:aSON0t2WsWaPWR5n1n42gC_UYS7D3kdGWOAneDvuLJQ1@thread.tacv2')}/messages",
+                        "body": {
+                          "body": {
+                            "contentType": "html",
+                            "content": "<p>[TEST MODE] Picked clothing orders have been exported as Transfers.</p><p><strong>@{variables('varBrisbaneTime')}</strong> &nbsp; @{length(variables('varExportRows'))} transfer file(s)</p><p>@{replace(variables('varFileNameList'), '\n', '<br/>')}</p>"
+                          }
+                        }
+                      },
+                      "runAfter": {}
+                    }
+                  },
+                  "else": {
+                    "actions": {
+                      "Post_Warehouse_Live": {
+                        "type": "ApiConnection",
+                        "inputs": {
+                          "host": {
+                            "connection": {
+                              "name": "@parameters('$connections')['shared_teams_1']['connectionId']"
+                            }
+                          },
+                          "method": "post",
+                          "path": "/beta/teams/@{encodeURIComponent('e8132bda-7152-45df-b1ca-de0f52a41977')}/channels/@{encodeURIComponent('19:7q7EU6zu9oaE54aW9AEnW8xrHSYCq_zDoWXqHyig2_k1@thread.tacv2')}/messages",
+                          "body": {
+                            "body": {
+                              "contentType": "html",
+                              "content": "<p>Picked clothing orders have been exported as Transfers.</p><p><strong>@{variables('varBrisbaneTime')}</strong> &nbsp; @{length(variables('varExportRows'))} transfer file(s)</p><p>@{replace(variables('varFileNameList'), '\n', '<br/>')}</p>"
+                            }
+                          }
+                        },
+                        "runAfter": {}
+                      }
+                    }
+                  },
+                  "runAfter": { "Compose_UniqueLocations": ["Succeeded"] }
+                },
+                "Apply_to_each_location": {
+                  "type": "Foreach",
+                  "foreach": "@outputs('Compose_UniqueLocations')",
+                  "actions": {
+                    "Filter_Rows_for_Location": {
+                      "type": "Query",
+                      "inputs": {
+                        "from": "@variables('varExportRows')",
+                        "where": "@equals(string(first(filter(item()?['cells'], equals(string(item()?['columnId']), '1533107887886212')))?['value']), string(items('Apply_to_each_location')))"
+                      },
+                      "runAfter": {}
+                    },
+                    "Select_EmployeeLines": {
+                      "type": "Select",
+                      "inputs": {
+                        "from": "@body('Filter_Rows_for_Location')",
+                        "select": "@concat(toUpper(string(first(filter(item()?['cells'], equals(string(item()?['columnId']), '388727693070212')))?['value'])), ' — ', trim(first(split(string(first(filter(item()?['cells'], equals(string(item()?['columnId']), '2640527506755460')))?['value']), ' ('))), ' × ', string(first(filter(item()?['cells'], equals(string(item()?['columnId']), '3794673913778052')))?['value']))"
+                      },
+                      "runAfter": { "Filter_Rows_for_Location": ["Succeeded"] }
+                    },
+                    "Compose_EmployeeList": {
+                      "type": "Compose",
+                      "inputs": "@join(body('Select_EmployeeLines'), '<br/>')",
+                      "runAfter": { "Select_EmployeeLines": ["Succeeded"] }
+                    },
+                    "Condition_Skip_Closed_Store": {
+                      "type": "If",
+                      "expression": {
+                        "or": [
+                          { "equals": ["@items('Apply_to_each_location')", "030"] },
+                          { "equals": ["@items('Apply_to_each_location')", "033"] },
+                          { "equals": ["@items('Apply_to_each_location')", "045"] }
+                        ]
+                      },
+                      "actions": {},
+                      "else": {
+                        "actions": {
+                          "Condition_TestMode_Store": {
+                            "type": "If",
+                            "expression": {
+                              "and": [{ "equals": ["@variables('varTestMode')", "@true"] }]
+                            },
+                            "actions": {
+                              "Post_Store_Test": {
+                                "type": "ApiConnection",
+                                "inputs": {
+                                  "host": {
+                                    "connection": {
+                                      "name": "@parameters('$connections')['shared_teams_1']['connectionId']"
+                                    }
+                                  },
+                                  "method": "post",
+                                  "path": "/beta/teams/@{encodeURIComponent('9271f6a0-9033-4f48-95b4-651e0ee89b33')}/channels/@{encodeURIComponent('19:aSON0t2WsWaPWR5n1n42gC_UYS7D3kdGWOAneDvuLJQ1@thread.tacv2')}/messages",
+                                  "body": {
+                                    "body": {
+                                      "contentType": "html",
+                                      "content": "<p>[TEST MODE — Store: @{items('Apply_to_each_location')}] The following clothing orders have been picked and will be delivered on your store's next pallet delivery:</p><p>@{outputs('Compose_EmployeeList')}</p><p>Please make sure that once you receive them, you sell them to the employee via Point of Sale process as per the quantity and prices listed on the delivery note. All shirts MUST be purchased by the employee.</p>"
+                                    }
+                                  }
+                                },
+                                "runAfter": {}
+                              }
+                            },
+                            "else": {
+                              "actions": {
+                                "Post_Store_Live_TODO": {
+                                  "type": "Compose",
+                                  "inputs": "TODO: Replace this Compose with a Teams Post action for location @{items('Apply_to_each_location')} before go-live. See teams/teams_mapping.md for channel IDs.",
+                                  "runAfter": {}
+                                }
+                              }
+                            },
+                            "runAfter": {}
+                          }
+                        }
+                      },
+                      "runAfter": { "Compose_EmployeeList": ["Succeeded"] }
+                    }
+                  },
+                  "runAfter": { "Condition_TestMode_Warehouse": ["Succeeded"] }
+                }
+              },
+              "else": { "actions": {} },
+              "runAfter": { "Set_varExportRows": ["Succeeded"] }
+            }
+          }
+        },
+        "Create_TeamsWork_Ticket": {
+          "type": "Http",
+          "inputs": {
+            "method": "POST",
+            "uri": "https://ticketing-apim-aus.azure-api.net/ticketing/v1/tickets?key=@{variables('varTeamsWorkAPIKey')}&timezone=10",
+            "headers": { "Content-Type": "application/json" },
+            "body": {
+              "ticket": {
+                "title": "Clothing Order Export Flow Failed — @{variables('varBrisbaneTime')}",
+                "description": "The scheduled Power Automate flow 'Clothing Order Export — Daily 7PM Brisbane' failed or timed out at @{variables('varBrisbaneTime')}. Please check the flow run history in Power Automate for error details.",
+                "requestor": {
+                  "id": "powerautomate",
+                  "name": "Power Automate",
+                  "email": "DavidN@pricesplus.com.au"
+                }
+              },
+              "user": {
+                "id": "powerautomate",
+                "name": "Power Automate",
+                "email": "DavidN@pricesplus.com.au"
+              }
+            }
+          },
+          "runAfter": { "Main_Flow": ["Failed", "TimedOut"] }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,53 @@
+{
+  "schema": "1.0",
+  "details": {
+    "displayName": "Clothing Order Export — Daily 7PM Brisbane",
+    "description": "Exports qualifying clothing orders from Smartsheet as TXT files to \\\\PPS2012\\DataLoad\\StkTrans via On-premises Data Gateway, updates Smartsheet, sends Teams notifications, and raises a TeamsWork ticket on failure.",
+    "creator": "David Nesbitt",
+    "sourceEnvironment": ""
+  },
+  "resources": {
+    "a7c3d852-e14f-4b89-9f2a-63c8e5d10b47": {
+      "type": "Microsoft.Flow/flows",
+      "id": "a7c3d852-e14f-4b89-9f2a-63c8e5d10b47",
+      "name": "a7c3d852-e14f-4b89-9f2a-63c8e5d10b47",
+      "order": 1,
+      "properties": {
+        "displayName": "Clothing Order Export — Daily 7PM Brisbane",
+        "environmentName": "Default-bbb79140-c248-48b2-a931-71c496cbbcfe",
+        "definitionSummary": {
+          "triggers": [{ "type": "Recurrence" }],
+          "actions": [{ "type": "Scope" }, { "type": "Http" }],
+          "description": "Daily 7PM Brisbane clothing order export flow."
+        },
+        "connectionReferences": {
+          "shared_filesystem_1": {
+            "displayName": "\\\\PPS2012\\DataLoad\\StkTrans",
+            "api": {
+              "name": "shared_filesystem",
+              "displayName": "File System"
+            },
+            "connection": {
+              "id": "/providers/Microsoft.PowerApps/apis/shared_filesystem/connections/ce2bbe4bdbbe49b4a80adb2879679f90"
+            },
+            "isOnPremiseConnection": true
+          },
+          "shared_teams_1": {
+            "displayName": "David Nesbitt",
+            "api": {
+              "name": "shared_teams",
+              "displayName": "Microsoft Teams"
+            },
+            "connection": {
+              "id": "/providers/Microsoft.PowerApps/apis/shared_teams/connections/shared-teams-f736e2e4-848d-4115-a112-df46e497f6e0"
+            },
+            "isOnPremiseConnection": false
+          }
+        }
+      },
+      "configurableBy": "User",
+      "hierarchy": "Root",
+      "dependsOn": []
+    }
+  }
+}
