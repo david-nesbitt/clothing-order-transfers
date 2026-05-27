@@ -94,6 +94,7 @@ Power Automate cell value lookup pattern:
 | Picked Quantity | Picked Quantity | `3794673913778052` |
 | Picked Date | Picked Date | `6046473727463300` |
 | Created Date | Created Date | `2863694728875908` |
+| Exported Date | Exported Date | `7514863571341188` | Set to Brisbane date at export time (yyyy-MM-dd) |
 
 ---
 

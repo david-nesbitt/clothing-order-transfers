@@ -37,6 +37,7 @@ Build a scheduled Power Automate flow that runs daily at 7:00 PM **Brisbane Time
 | Picked Date | `6046473727463300` | DATE | |
 | Picked Quantity | `3794673913778052` | TEXT_NUMBER | **Export trigger: value > 0** |
 | Exported Transfer | `2388194816724868` | CHECKBOX | **Ticked true after export** |
+| Exported Date | `7514863571341188` | DATE | **Set to Brisbane date after export** |
 
 ### Post to Location Picklist Values
 001 - Warehouse Distribution Centre, 002 - Support Office, 012 - Bowen, 014 - Blackwater,
@@ -59,10 +60,10 @@ Build a scheduled Power Automate flow that runs daily at 7:00 PM **Brisbane Time
 | 5 | Service account confirmed: reuse `PRICESPLUS\TenciaCheckSvc` (already has access via Everyone ACE) | ✅ Done |
 | 6 | File System connection created in Power Automate (gateway + UNC path + TenciaCheckSvc) | ✅ Done — `\\PPS2012\DataLoad\StkTrans` Connected |
 | 7 | Smartsheet API token — named "Power Automate Clothing Order Export" in Smartsheet | ✅ Generated — stored in IT password manager only, never in repo |
-| 8 | Teams channel ID — Warehouse team | ⬜ To be supplied at build time |
-| 9 | Teams channel IDs — one per Post to Location store | ⬜ To be supplied at build time |
-| 10 | Teams message content — Warehouse notification | ⬜ To be defined at build time |
-| 11 | Teams message content — Post to Location notification | ⬜ To be defined at build time |
+| 8 | Teams channel — Warehouse team → General | ✅ Done — see `teams/teams_mapping.md` |
+| 9 | Teams channels — per store mapping defined | ✅ Done — see `teams/teams_mapping.md` (030, 033, 045 closed — no notification) |
+| 10 | Teams message content — Warehouse notification | ✅ Done — see `teams/message_templates.md` |
+| 11 | Teams message content — Per-store notification | ✅ Done — see `teams/message_templates.md` |
 | 12 | Power Automate Premium licence confirmed | ✅ Confirmed |
 
 ---
@@ -88,13 +89,20 @@ Add the following `Initialize variable` actions at the start of the flow:
 | Variable Name | Type | Initial Value |
 |---|---|---|
 | `varSheetId` | String | `5041000518995844` |
-| `varAPIToken` | String | *(Smartsheet API token — use a named secret or connection, not plaintext)* |
+| `varAPIToken` | String | *(Smartsheet API token — paste value, do not commit to repo)* |
 | `varExportedColumnId` | String | `2388194816724868` |
+| `varExportedDateColumnId` | String | `7514863571341188` |
 | `varExportRows` | Array | `[]` |
 | `varBrisbaneTime` | String | `@{convertTimeZone(utcNow(), 'UTC', 'E. Australia Standard Time', 'dd/MM/yyyy HH:mm')}` |
+| `varBrisbaneDate` | String | `@{convertTimeZone(utcNow(), 'UTC', 'E. Australia Standard Time', 'yyyy-MM-dd')}` |
 | `varTimestamp` | String | `@{convertTimeZone(utcNow(), 'UTC', 'E. Australia Standard Time', 'yyyyMMdd_HHmm')}` |
+| `varTestMode` | Boolean | `true` *(set to false only when go-live is confirmed)* |
+| `varFileNameList` | String | `''` *(accumulates filenames for warehouse notification)* |
+| `varTeamsWorkAPIKey` | String | *(TeamsWork API key — to be supplied, do not commit to repo)* |
 
-> All times shown in Teams messages and file names must use `varBrisbaneTime` or `varTimestamp` — never raw UTC values. Power Automate's timezone string for Brisbane is `'E. Australia Standard Time'`.
+> All times shown in Teams messages and file names must use `varBrisbaneTime`, `varBrisbaneDate`, or `varTimestamp` — never raw UTC values. Power Automate's timezone string for Brisbane is `'E. Australia Standard Time'`.
+>
+> **Test mode:** While `varTestMode` is `true`, all Teams notifications are routed to **Feature Test Site → General** regardless of location. Set to `false` at go-live.
 
 ---
 
@@ -218,7 +226,7 @@ Before or during the loop, collect all exported row IDs.
   Authorization: Bearer @{variables('varAPIToken')}
   Content-Type: application/json
   ```
-- Body: Array of all exported rows, each setting `Exported Transfer` to `true`:
+- Body: Array of all exported rows, each setting `Exported Transfer` to `true` and `Exported Date` to today's Brisbane date:
   ```json
   [
     {
@@ -227,6 +235,10 @@ Before or during the loop, collect all exported row IDs.
         {
           "columnId": 2388194816724868,
           "value": true
+        },
+        {
+          "columnId": 7514863571341188,
+          "value": "@{variables('varBrisbaneDate')}"
         }
       ]
     },
@@ -235,6 +247,7 @@ Before or during the loop, collect all exported row IDs.
   ```
 
 > Send all row updates in a **single PUT call** (the Smartsheet API accepts an array). Do not loop with one HTTP call per row — this avoids rate limiting (300 requests/minute limit).
+> `varBrisbaneDate` format is `yyyy-MM-dd` — Smartsheet DATE columns require ISO format.
 
 ---
 
@@ -249,24 +262,79 @@ All times in messages must use `varBrisbaneTime` (Brisbane local time, not UTC).
 - Add a `Condition` check: `length(variables('varExportRows'))` is greater than `0`
 - Only proceed with Teams notifications if true
 
-**5.2 — Notification 1: Warehouse Team**
+**5.2 — Test mode routing**
+
+At the start of the notification block, use a `Condition` on `variables('varTestMode')`:
+- If **true**: all messages go to **Feature Test Site → General**
+- If **false**: messages route to their real team/channel per `teams/teams_mapping.md`
+
+This single flag controls all notification routing. Set `varTestMode = false` at go-live.
+
+**5.3 — Notification 1: Warehouse Team**
 - Action: `Post message in a chat or channel` (Microsoft Teams connector)
-- Team / Channel: *(Warehouse Teams channel — ID to be supplied at build time)*
-- Message content: *(To be defined and approved at build time)*
-- Must include: Brisbane timestamp from `varBrisbaneTime`, count of exported rows, list of files created
+- Team / Channel: **Warehouse Team → General** (or **Feature Test Site → General** if test mode)
+- Message template: see `teams/message_templates.md`
+- Must include: `varBrisbaneTime`, count of exported rows (`length(varExportRows)`), `varFileNameList` (one filename per line, built during Task 3 loop)
 
-**5.3 — Notification 2: Per Post to Location store**
+**5.4 — Notification 2: Per Post to Location store**
 
-Each store should only receive details of their own orders.
+Each store receives details of their own orders only. Closed stores (030, 033, 045) receive no message.
 
-- Use a `Select` action on `varExportRows` to extract all `Post to Location` values
-- Use a `Union` expression to deduplicate: `@{union(variables('varLocationList'), variables('varLocationList'))}`
-- Loop over unique locations with `Apply to each`
-- For each location, filter `varExportRows` to rows matching that location
-- Action: `Post message in a chat or channel`
-- Team / Channel: *(Mapped from location code to Teams channel ID — mapping JSON to be supplied at build time)*
-- Message content: *(To be defined and approved at build time)*
-- Must include: Brisbane timestamp, store location name, list of employee names and items in the batch
+- Use a `Select` action on `varExportRows` to extract all Post to Location ID values
+- Deduplicate with: `@{union(body('Select_Locations'), body('Select_Locations'))}`
+- Loop over unique location IDs with `Apply to each`
+- **Skip condition:** if location ID is `030`, `033`, or `045` → continue (no message)
+- **Reroute condition:** if location ID is `001` or `002` → post to **Warehouse Team → General**
+- Otherwise: post to the team/channel mapped in `teams/teams_mapping.md`
+- If `varTestMode = true`: always post to **Feature Test Site → General** instead
+- Message template: see `teams/message_templates.md`
+
+> Full channel mapping: `teams/teams_mapping.md`. Team and channel IDs are resolved in Power Automate dropdowns at build time.
+
+---
+
+### Task 6 — Error Handling: TeamsWork Ticket on Failure
+
+Wrap the entire flow body in a **Scope** action named `Main Flow`. Add a parallel branch with **Configure run after** set to run only on failure/timeout of the Main Flow scope.
+
+**6.1 — On failure: create a TeamsWork ticket**
+
+- Action: `HTTP`
+- Method: `POST`
+- URI:
+  ```
+  https://ticketing-apim-aus.azure-api.net/ticketing/v1/tickets?key=@{variables('varTeamsWorkAPIKey')}&timezone=10
+  ```
+  > timezone=10 for AEST (UTC+10)
+- Headers:
+  ```
+  Content-Type: application/json
+  ```
+- Body:
+  ```json
+  {
+    "ticket": {
+      "title": "Clothing Order Export Flow Failed — @{variables('varBrisbaneTime')}",
+      "description": "The scheduled Power Automate flow 'Clothing Order Export — Daily 7PM Brisbane' failed or timed out at @{variables('varBrisbaneTime')}. Please check the flow run history in Power Automate for error details.\n\nFlow: Clothing Order Export — Daily 7PM Brisbane\nRun time: @{variables('varBrisbaneTime')}",
+      "requestor": {
+        "id": "powerautomate",
+        "name": "Power Automate",
+        "email": "DavidN@pricesplus.com.au"
+      }
+    },
+    "user": {
+      "id": "powerautomate",
+      "name": "Power Automate",
+      "email": "DavidN@pricesplus.com.au"
+    }
+  }
+  ```
+
+**6.2 — TeamsWork API key**
+- Variable: `varTeamsWorkAPIKey` (initialised in Task 1.2)
+- The API key is obtained from TeamsWork app settings → API key section
+- Store in IT password manager — do not commit to repo
+- API connection to be set up at build time
 
 ---
 
