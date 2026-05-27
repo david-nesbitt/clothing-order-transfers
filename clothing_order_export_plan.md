@@ -1,11 +1,117 @@
 # Claude Code Plan: Clothing Order Export Automation
-## Power Automate — Smartsheet to CSV via Scheduled Flow
+## Power Automate — Smartsheet to TXT via Scheduled Flow
+
+---
+
+## ⚡ Current Status — End of Session 27/05/2026
+
+### What's built and working (v12)
+| Item | Status |
+|---|---|
+| Importable Power Automate package | ✅ `flow/ClothingOrderExport_v12_TEST.zip` |
+| Scheduled trigger — 08:30 UTC (6:30 PM Brisbane) | ✅ In definition |
+| File creation — STKTRAN_*.txt → \\PPS2012\DataLoad\StkTrans | ✅ Tested and working |
+| Smartsheet tick-back (Exported Transfer + Exported Date) | ✅ Tested and working |
+| Teams warehouse notification (test → Feature Test Site → General) | ✅ Working |
+| Teams per-store notification (test → Feature Test Site → General) | ✅ Working |
+| Teams failure DM → DavidN@pricesplus.com.au | ✅ Tested and working |
+| Live store channel routing (varStoreMapping lookup) | ✅ Architecture in place, partial mapping |
+| varTestMode flag (true = all posts → Feature Test Site) | ✅ In place |
+| Stock code + description in Teams message (bold) | ✅ Working |
+
+### Flow state right now
+- **Flow is TURNED OFF** in Power Automate (do not turn on until go-live checklist below is complete)
+- **varTestMode = true** — all Teams posts still route to Feature Test Site → General
+- **Filter = Picked Quantity equals 100** (test filter) — must be changed to `> 0` before backfill run
+- **Package version:** v12 — `flow/ClothingOrderExport_v12_TEST.zip`
+
+### varStoreMapping — mapped so far
+| Store | Name | Mapped |
+|---|---|---|
+| 001 | Warehouse DC | ✅ Warehouse Team → General |
+| 002 | Support Office | ✅ Warehouse Team → General |
+| 014 | Blackwater | ✅ Region 1 |
+| 023 | Moranbah | ✅ Region 1 |
+| All others | — | ⬜ Falls back silently (no error, no post) |
+
+---
+
+## ⏭️ Next Steps — Resume Here
+
+### Step 1 — Add varSilentMode (backfill option)
+Add a new boolean variable `varSilentMode` to the flow:
+- When **true**: exports files and ticks Smartsheet — **but skips all Teams notifications**
+- When **false**: normal operation including all Teams messages
+
+This is needed for the initial backfill of ~105 existing rows. The stores don't need Teams notifications for historical orders.
+
+**Implementation:** Wrap the Teams notification block (Condition_TestMode_Warehouse + Apply_to_each_location) inside a `Condition_SilentMode` check:
+- `Condition_SilentMode` = `@equals(variables('varSilentMode'), false)` → only post if NOT silent
+
+Add `Initialize_varSilentMode` to the variable chain (after `Initialize_varStoreMapping`):
+- Type: Boolean
+- Default value: `true` (safe default — don't accidentally spam stores)
+
+### Step 2 — Collect remaining store Teams channel URLs
+Still need channel URLs for these stores (right-click channel in Teams → Get link to channel, paste URL here):
+
+**Region 1** (groupId: `9328e896-1d30-44f9-acd9-7456f322d86b`):
+- [ ] 019 Inverell
+- [ ] 021 Brassall
+- [ ] 022 Bribie Island
+- [ ] 032 Kingaroy
+- [ ] 034 Muswellbrook
+- [ ] 037 Longreach
+- [ ] 038 Charleville
+
+**Region 2** (groupId: unknown — provide any one URL to get it):
+- [ ] 012 Bowen
+- [ ] 017 Mossman
+- [ ] 018 Hermit Park
+- [ ] 026 Innisfail
+- [ ] 027 Tully
+- [ ] 028 Ingham
+- [ ] 029 Woodlands
+- [ ] 036 Atherton
+- [ ] 040 Smithfield
+- [ ] 041 Atherton Overflow
+- [ ] 042 Charters Towers Overflow
+- [ ] 043 Ayr
+- [ ] 044 Mareeba
+
+**Toowoomba team** (separate team — General channel):
+- [ ] 031 Toowoomba
+
+Stores 030 (Charters Towers), 033 (Willows), 045 (Calliope) — **closed, no notification, no mapping needed.**
+
+### Step 3 — Backfill run (all ~105 historic rows, no Teams messages)
+Once varSilentMode is built and the filter is updated:
+
+1. Import latest package
+2. Edit flow → set `varSilentMode = true`
+3. Edit flow → set filter from `equals(..., 100)` to `greater(..., 0)` *(or change Condition_Row_Qualifies expression)*
+4. Run manually once
+5. Confirm all files created in \\PPS2012\DataLoad\StkTrans
+6. Confirm all ~105 rows ticked in Smartsheet (Exported Transfer ✅, Exported Date set)
+7. Confirm NO Teams messages sent to any store channels
+
+### Step 4 — Go-live
+After backfill is confirmed and all store channel IDs are mapped:
+
+1. Import final package with:
+   - `varTestMode = false`
+   - `varSilentMode = false`
+   - Filter: `greater(Picked Quantity, 0)`
+   - All store channels mapped in varStoreMapping
+2. Paste real Smartsheet API token into `Initialize_varAPIToken`
+3. **Turn the flow ON** (enable the scheduled trigger)
+4. From this point: the flow runs daily at 6:30 PM Brisbane time — only new orders (not yet exported) trigger files + Smartsheet tick-back + Teams messages
 
 ---
 
 ## Context & Goal
 
-Build a scheduled Power Automate flow that runs daily at 7:00 PM **Brisbane Time (AEST, UTC+10)**. It reads rows from the **Clothing Order Form** Smartsheet, exports qualifying rows — one CSV file per row — to a **SharePoint folder**, ticks the "Exported Transfer" checkbox on each processed row back in Smartsheet, and sends two Microsoft Teams notifications — one to the warehouse team and one per unique "Post to Location" store. All timestamps and message times displayed to users must be in **Brisbane local time (AEST UTC+10)**.
+Build a scheduled Power Automate flow that runs daily at 6:30 PM **Brisbane Time (AEST, UTC+10 = 08:30 UTC)**. It reads rows from the **Clothing Order Form** Smartsheet, exports qualifying rows — one TXT file per row — to `\\PPS2012\DataLoad\StkTrans` via On-premises Data Gateway on PP01-SV06, ticks the "Exported Transfer" checkbox on each processed row back in Smartsheet, and sends two Microsoft Teams notifications — one to the warehouse team and one per unique "Post to Location" store.
 
 ---
 
@@ -27,25 +133,22 @@ Build a scheduled Power Automate flow that runs daily at 7:00 PM **Brisbane Time
 | Post to Location | `4094810949373828` | PICKLIST | e.g. "031 - Toowoomba" |
 | Post to Location ID | `1533107887886212` | TEXT_NUMBER | Hidden |
 | Post to Location Name | `6036707515256708` | TEXT_NUMBER | Hidden |
-| Employee's Main Workplace Y/N | `3971665647062916` | PICKLIST | Yes / No |
-| Main Workplace (if diff.) | `4892327320440708` | PICKLIST | |
 | Shirt Size | `2640527506755460` | PICKLIST | e.g. "M (code 9991003)" |
-| Shirt Cost | `6420449018728324` | TEXT_NUMBER | |
-| Shirt Quantity | `7144127134125956` | TEXT_NUMBER | |
-| Total Cost | `699131539443588` | TEXT_NUMBER | |
-| Employee Declaration | `1514627599912836` | CHECKBOX | |
 | Picked Date | `6046473727463300` | DATE | |
 | Picked Quantity | `3794673913778052` | TEXT_NUMBER | **Export trigger: value > 0** |
 | Exported Transfer | `2388194816724868` | CHECKBOX | **Ticked true after export** |
 | Exported Date | `7514863571341188` | DATE | **Set to Brisbane date after export** |
 
-### Post to Location Picklist Values
-001 - Warehouse Distribution Centre, 002 - Support Office, 012 - Bowen, 014 - Blackwater,
-017 - Mossman, 018 - Hermit Park, 019 - Inverell, 021 - Brassall, 022 - Bribie Island,
-023 - Moranbah, 026 - Innisfail, 027 - Tully, 028 - Ingham, 029 - Woodlands,
-030 - Charters Towers, 031 - Toowoomba, 032 - Kingaroy, 033 - Willows, 034 - Muswellbrook,
-036 - Atherton, 037 - Longreach, 038 - Charleville, 040 - Smithfield, 041 - Atherton Overflow,
-042 - Charters Towers Overflow, 043 - Ayr, 044 - Mareeba, 045 - Calliope
+### Stock Code Mapping
+| Shirt Size | Stock Code | Description |
+|---|---|---|
+| XS | 9991001 | STAFF POLO SHIRT XS |
+| S | 9991002 | STAFF POLO SHIRT SML |
+| M | 9991003 | STAFF POLO SHIRT MED |
+| L | 9991004 | STAFF POLO SHIRT LGE |
+| XL | 9991005 | STAFF POLO SHIRT XL |
+| XXL | 9991006 | STAFF POLO SHIRT XXL |
+| XXXL | 9991007 | STAFF POLO SHIRT XXXL |
 
 ---
 
@@ -54,351 +157,123 @@ Build a scheduled Power Automate flow that runs daily at 7:00 PM **Brisbane Time
 | # | Item | Status |
 |---|---|---|
 | 1 | Smartsheet `Exported Transfer` column added (CHECKBOX, ID: `2388194816724868`) | ✅ Done |
-| 2 | CSV file per row — column structure defined in `csv/csv_structure.md` | ✅ Done |
-| 3 | On-premises Data Gateway installed and registered on **PP01-SV06** — see `gateway/gateway_setup.md` | ✅ Done (v3000.318.9, May 2026) |
+| 2 | TXT file per row — column structure defined | ✅ Done |
+| 3 | On-premises Data Gateway installed and registered on **PP01-SV06** | ✅ Done (v3000.318.9, May 2026) |
 | 4 | UNC path confirmed: `\\PPS2012\DataLoad\StkTrans` | ✅ Done |
-| 5 | Service account confirmed: reuse `PRICESPLUS\TenciaCheckSvc` (already has access via Everyone ACE) | ✅ Done |
-| 6 | File System connection created in Power Automate (gateway + UNC path + TenciaCheckSvc) | ✅ Done — `\\PPS2012\DataLoad\StkTrans` Connected |
-| 7 | Smartsheet API token — named "Power Automate Clothing Order Export" in Smartsheet | ✅ Generated — stored in IT password manager only, never in repo |
-| 8 | Teams channel — Warehouse team → General | ✅ Done — see `teams/teams_mapping.md` |
-| 9 | Teams channels — per store mapping defined | ✅ Done — see `teams/teams_mapping.md` (030, 033, 045 closed — no notification) |
-| 10 | Teams message content — Warehouse notification | ✅ Done — see `teams/message_templates.md` |
-| 11 | Teams message content — Per-store notification | ✅ Done — see `teams/message_templates.md` |
-| 12 | Power Automate Premium licence confirmed | ✅ Confirmed |
+| 5 | Service account confirmed: reuse `PRICESPLUS\TenciaCheckSvc` | ✅ Done |
+| 6 | File System connection created in Power Automate | ✅ Done — `\\PPS2012\DataLoad\StkTrans` connected |
+| 7 | Smartsheet API token — stored in IT password manager only | ✅ Generated — **never commit to repo** |
+| 8 | Teams: Warehouse Team → General | ✅ IDs in varStoreMapping (001, 002) |
+| 9 | Teams: per-store channel mapping | ⚠️ Partial — 014 and 023 done, rest outstanding (see Step 2 above) |
+| 10 | Teams message content | ✅ Done |
+| 11 | Power Automate Premium licence | ✅ Confirmed |
+| 12 | Flow package importable and tested | ✅ v12 |
 
 ---
 
-## Tasks
+## Flow Package Files
+
+```
+flow/
+├── ClothingOrderExport_v12_TEST.zip          ← Current — import this
+├── package/
+│   ├── manifest.json
+│   └── Microsoft.Flow/flows/
+│       ├── manifest.json
+│       └── a7c3d852-e14f-4b89-9f2a-63c8e5d10b47/
+│           ├── definition.json               ← Source of truth — edit this, re-zip
+│           ├── apisMap.json
+│           └── connectionsMap.json
+```
+
+**To rebuild the zip after editing definition.json:**
+```powershell
+$pkg = "c:\GitProjects\Clothing Order Transfers\flow\package"
+$out = "c:\GitProjects\Clothing Order Transfers\flow\ClothingOrderExport_vXX_TEST.zip"
+Compress-Archive -Path "$pkg\*" -DestinationPath $out -CompressionLevel Optimal
+```
 
 ---
 
-### Task 1 — Create the Scheduled Flow Trigger
+## Key Flow Variables
 
-**1.1 — Create a new Scheduled Cloud Flow**
-- Trigger: `Recurrence`
-- Frequency: `Day`
-- At: `09:00 AM UTC` (which equals 7:00 PM AEST Brisbane Time, UTC+10)
-- Name the flow: `Clothing Order Export — Daily 7PM Brisbane`
+| Variable | Type | Current Value | Purpose |
+|---|---|---|---|
+| varSheetId | String | `5041000518995844` | Smartsheet sheet ID |
+| varAPIToken | String | `PASTE_SMARTSHEET_API_TOKEN_HERE` | **Paste from password manager — never commit** |
+| varExportedColumnId | String | `2388194816724868` | Exported Transfer column |
+| varExportedDateColumnId | String | `7514863571341188` | Exported Date column |
+| varExportRows | Array | `[]` | Accumulates exported row data |
+| varBrisbaneTime | String | `convertTimeZone(...)` | Display time in messages |
+| varBrisbaneDate | String | `convertTimeZone(...)` | Date for Smartsheet tick-back |
+| varTimestamp | String | `convertTimeZone(...)` | Filename timestamp |
+| varTestMode | Boolean | `true` | **false at go-live** — redirects all posts to Feature Test Site |
+| varSilentMode | Boolean | *(to be added)* | **true for backfill** — exports files/ticks Smartsheet but skips Teams posts |
+| varFileNameList | String | `''` | Accumulates filenames for warehouse message |
+| varRowUpdates | Array | `[]` | Batch Smartsheet row updates |
+| varStoreMapping | Object | See below | Store ID → Teams groupId/channelId lookup |
 
-> **Timezone note:** Power Automate's Recurrence trigger runs in UTC. Brisbane is UTC+10 and does not observe daylight saving, so 7:00 PM AEST is always 09:00 UTC. Set the trigger to 09:00 UTC.
-
-**1.2 — Initialize variables**
-
-Add the following `Initialize variable` actions at the start of the flow:
-
-| Variable Name | Type | Initial Value |
-|---|---|---|
-| `varSheetId` | String | `5041000518995844` |
-| `varAPIToken` | String | *(Smartsheet API token — paste value, do not commit to repo)* |
-| `varExportedColumnId` | String | `2388194816724868` |
-| `varExportedDateColumnId` | String | `7514863571341188` |
-| `varExportRows` | Array | `[]` |
-| `varBrisbaneTime` | String | `@{convertTimeZone(utcNow(), 'UTC', 'E. Australia Standard Time', 'dd/MM/yyyy HH:mm')}` |
-| `varBrisbaneDate` | String | `@{convertTimeZone(utcNow(), 'UTC', 'E. Australia Standard Time', 'yyyy-MM-dd')}` |
-| `varTimestamp` | String | `@{convertTimeZone(utcNow(), 'UTC', 'E. Australia Standard Time', 'yyyyMMdd_HHmm')}` |
-| `varTestMode` | Boolean | `true` *(set to false only when go-live is confirmed)* |
-| `varFileNameList` | String | `''` *(accumulates filenames for warehouse notification)* |
-| `varTeamsWorkAPIKey` | String | *(TeamsWork API key — to be supplied, do not commit to repo)* |
-
-> All times shown in Teams messages and file names must use `varBrisbaneTime`, `varBrisbaneDate`, or `varTimestamp` — never raw UTC values. Power Automate's timezone string for Brisbane is `'E. Australia Standard Time'`.
->
-> **Test mode:** While `varTestMode` is `true`, all Teams notifications are routed to **Feature Test Site → General** regardless of location. Set to `false` at go-live.
+### varStoreMapping current value
+```json
+{
+  "001": { "groupId": "e8132bda-7152-45df-b1ca-de0f52a41977", "channelId": "19:7q7EU6zu9oaE54aW9AEnW8xrHSYCq_zDoWXqHyig2_k1@thread.tacv2" },
+  "002": { "groupId": "e8132bda-7152-45df-b1ca-de0f52a41977", "channelId": "19:7q7EU6zu9oaE54aW9AEnW8xrHSYCq_zDoWXqHyig2_k1@thread.tacv2" },
+  "014": { "groupId": "9328e896-1d30-44f9-acd9-7456f322d86b", "channelId": "19:80af764441164fc687c52770e7f57799@thread.tacv2" },
+  "023": { "groupId": "9328e896-1d30-44f9-acd9-7456f322d86b", "channelId": "19:2af021222450490885c65e319e85c6f5@thread.tacv2" }
+}
+```
+Region 1 groupId: `9328e896-1d30-44f9-acd9-7456f322d86b`
+Warehouse Team groupId: `e8132bda-7152-45df-b1ca-de0f52a41977`
+Region 2 groupId: *(unknown — provide any Region 2 channel URL to get it)*
+Toowoomba team groupId: *(unknown — provide Toowoomba → General URL)*
 
 ---
 
-### Task 2 — Fetch and Filter Rows from Smartsheet
+## Teams Channel Mapping (Full)
 
-**2.1 — HTTP action: Get sheet**
-- Action: `HTTP`
-- Method: `GET`
-- URI:
-  ```
-  https://api.smartsheet.com/2.0/sheets/5041000518995844?includeAll=true
-  ```
-- Headers:
-  ```
-  Authorization: Bearer @{variables('varAPIToken')}
-  Content-Type: application/json
-  ```
+See `teams/teams_mapping.md` for logical mapping.
 
-**2.2 — Parse JSON**
-- Use `Parse JSON` on the HTTP response body
-- Generate schema from a sample Smartsheet API response
-
-**2.3 — Filter rows**
-Use a `Filter array` action on `body/rows` to select only rows where:
-- The cell with `columnId` = `3794673913778052` (Picked Quantity) has a `value` greater than `0`
-- AND the cell with `columnId` = `2388194816724868` (Exported Transfer) has a `value` of `false` or is null/empty
-
-> **Important:** Smartsheet returns cells as an array inside each row. You cannot reference cells by index — you must use a `Filter array` or nested expression to find the cell where `columnId` matches, then read its `value`.
-
-**2.4 — Store filtered rows**
-Set `varExportRows` to the output of the filter array.
-
----
-
-### Task 3 — Create One CSV File Per Row in SharePoint
-
-> Full column specification: see `csv/csv_structure.md`
-
-**3.1 — Apply to each row in varExportRows**
-
-**3.2 — Extract cell values**
-
-Add `Initialize variable` actions inside the loop to extract each required cell. Use this pattern for every field:
-```
-@{first(filter(item()?['cells'], equals(string(item()?['columnId']), '<COLUMN_ID>')))?['value']}
-```
-
-| Variable | Column ID | Notes |
-|---|---|---|
-| `varEmployeeID` | `8551502017679236` | |
-| `varEmployeeFullName` | `388727693070212` | Convert to UPPERCASE in expression |
-| `varPostToLocationID` | `1533107887886212` | 3-digit string, leading zero must be preserved |
-| `varShirtSize` | `2640527506755460` | Full value e.g. `S (code 9991002)` |
-| `varPickedQuantity` | `3794673913778052` | |
-| `varPickedDate` | `6046473727463300` | Format to `dd/MM/yyyy` and `yyyy-MM-dd` separately |
-| `varCreatedDate` | `2863694728875908` | Format to `dd/MM/yyyy` |
-
-**3.3 — Derive Stock Code from Shirt Size**
-
-Parse the 7-digit stock code directly from `varShirtSize` — no Switch needed:
-```
-substring(variables('varShirtSize'), add(indexOf(variables('varShirtSize'), 'code '), 5), 7)
-```
-Store as `varStockCode`.
-
-**3.4 — Build filename**
-```
-concat('STKTRAN_', variables('varPostToLocationID'), '_', variables('varEmployeeID'), '_', formatDateTime(<PickedDate_value>, 'yyyy-MM-dd'), '.txt')
-```
-
-**3.5 — Build CSV content (no header row)**
-
-Concatenate all 14 fields as a single comma-separated string. The output is one data row with no header:
-```
-concat(
-  '',                                                                    ,  Field 1: DOC_HEADS_REFERENCE_NBR (empty)
-  ',', formatDateTime(<PickedDate>, 'dd/MM/yyyy'),                       ,  Field 2: DOC_HEADS_TRANS_DATE
-  ',', variables('varEmployeeID'), ' CLOTHING ORDER',                    ,  Field 3: DOC_HEADS_DETAIL
-  ',S',                                                                  ,  Field 4: TRANS_LINES_LINE_TYPE
-  ',001',                                                                ,  Field 5: DOC_HEADS_STOCK_LOCATION (always 001)
-  ',', variables('varPostToLocationID'),                                  ,  Field 6: TRANS_LINES_STOCK_LOCATION
-  ',', variables('varStockCode'),                                         ,  Field 7: TRANS_LINES_STOCK_CODE
-  ',', variables('varEmployeeID'), ' ', toUpper(variables('varEmployeeFullName')),  ,  Field 8: TRANS_LINES_DESCRIPTION
-  ',', variables('varPickedQuantity'),                                    ,  Field 9: TRANS_LINES_ENTERED_QTY
-  ',', variables('varEmployeeID'),                                        ,  Field 10: TRANS_LINES_USER_FIELD_1
-  ',SHIRT ORDER',                                                        ,  Field 11: TRANS_LINES_USER_FIELD_2
-  ',', formatDateTime(<PickedDate>, 'dd/MM/yyyy'),                       ,  Field 12: TRANS_LINES_USER_FIELD_3
-  ',', formatDateTime(<CreatedDate>, 'dd/MM/yyyy'),                      ,  Field 13: TRANS_LINES_USER_FIELD_4
-  ',', variables('varEmployeeID'), '-', variables('varStockCode')        ,  Field 14: TRANS_LINES_USER_FIELD_6
-)
-```
-
-> Note: Power Automate `concat()` does not accept inline comments — remove the comment text when entering in the portal. The layout above is for readability only.
-
-**3.6 — Create file via File System connector (On-premises Data Gateway)**
-- Action: `Create file` *(File System connector — not SharePoint)*
-- Connection: File System connection on **PP01-SV06-Gateway** (see `gateway/gateway_setup.md`)
-- Folder path: `/` *(root of the connection, which maps to the confirmed UNC path)*
-- File Name: output of step 3.4 (e.g. `STKTRAN_014_105676_2026-04-30.txt`)
-- File Content: CSV string built in 3.5
-
-> One `.txt` file is created per exported row. Content is CSV-formatted with no header row. Files land directly in the OceanicSquare import folder via the gateway — no SharePoint involved.
+| Location ID | Location Name | Teams Team | Channel | Notification |
+|---|---|---|---|---|
+| 001 | Warehouse Distribution Centre | Warehouse Team | General | ✅ Mapped |
+| 002 | Support Office | Warehouse Team | General | ✅ Mapped |
+| 012 | Bowen | Region 2 | 012 Bowen | ⬜ Need URL |
+| 014 | Blackwater | Region 1 | 014 Blackwater | ✅ Mapped |
+| 017 | Mossman | Region 2 | 017 Mossman | ⬜ Need URL |
+| 018 | Hermit Park | Region 2 | 018 Hermit Park | ⬜ Need URL |
+| 019 | Inverell | Region 1 | 019 Inverell | ⬜ Need URL |
+| 021 | Brassall | Region 1 | 021 Brassall | ⬜ Need URL |
+| 022 | Bribie Island | Region 1 | 022 Bribie Island | ⬜ Need URL |
+| 023 | Moranbah | Region 1 | 023 Moranbah | ✅ Mapped |
+| 026 | Innisfail | Region 2 | 026 Innisfail | ⬜ Need URL |
+| 027 | Tully | Region 2 | 027 Tully | ⬜ Need URL |
+| 028 | Ingham | Region 2 | 028 Ingham | ⬜ Need URL |
+| 029 | Woodlands | Region 2 | 029 Woodlands | ⬜ Need URL |
+| 030 | Charters Towers | — | — | ❌ Closed — no notification |
+| 031 | Toowoomba | Toowoomba | General | ⬜ Need URL |
+| 032 | Kingaroy | Region 1 | 032 Kingaroy | ⬜ Need URL |
+| 033 | Willows | — | — | ❌ Closed — no notification |
+| 034 | Muswellbrook | Region 1 | 034 Muswellbrook | ⬜ Need URL |
+| 036 | Atherton | Region 2 | 036 Atherton | ⬜ Need URL |
+| 037 | Longreach | Region 1 | 037 Longreach | ⬜ Need URL |
+| 038 | Charleville | Region 1 | 038 Charleville | ⬜ Need URL |
+| 040 | Smithfield | Region 2 | 040 Smithfield | ⬜ Need URL |
+| 041 | Atherton Overflow | Region 2 | 041 Overflow Atherton | ⬜ Need URL |
+| 042 | Charters Towers Overflow | Region 2 | 042 Overflow Charters Towers | ⬜ Need URL |
+| 043 | Ayr | Region 2 | 043 Ayr | ⬜ Need URL |
+| 044 | Mareeba | Region 2 | 044 Mareeba | ⬜ Need URL |
+| 045 | Calliope | — | — | ❌ Closed — no notification |
 
 ---
 
-### Task 4 — Tick "Exported Transfer" in Smartsheet
+## Key Technical Notes
 
-After all CSV files are created, update Smartsheet to mark each exported row.
-
-**4.1 — Build row update payload array**
-Before or during the loop, collect all exported row IDs.
-
-**4.2 — HTTP action: Batch update rows (single API call)**
-- Method: `PUT`
-- URI:
-  ```
-  https://api.smartsheet.com/2.0/sheets/5041000518995844/rows
-  ```
-- Headers:
-  ```
-  Authorization: Bearer @{variables('varAPIToken')}
-  Content-Type: application/json
-  ```
-- Body: Array of all exported rows, each setting `Exported Transfer` to `true` and `Exported Date` to today's Brisbane date:
-  ```json
-  [
-    {
-      "id": <row_id>,
-      "cells": [
-        {
-          "columnId": 2388194816724868,
-          "value": true
-        },
-        {
-          "columnId": 7514863571341188,
-          "value": "@{variables('varBrisbaneDate')}"
-        }
-      ]
-    },
-    ...
-  ]
-  ```
-
-> Send all row updates in a **single PUT call** (the Smartsheet API accepts an array). Do not loop with one HTTP call per row — this avoids rate limiting (300 requests/minute limit).
-> `varBrisbaneDate` format is `yyyy-MM-dd` — Smartsheet DATE columns require ISO format.
-
----
-
-### Task 5 — Send Teams Notifications
-
-> **Message content for both notifications below must be defined and approved before this task is built.**
-> Placeholders are shown. Replace with agreed wording during the build session.
-
-All times in messages must use `varBrisbaneTime` (Brisbane local time, not UTC).
-
-**5.1 — Condition: Only send notifications if varExportRows is not empty**
-- Add a `Condition` check: `length(variables('varExportRows'))` is greater than `0`
-- Only proceed with Teams notifications if true
-
-**5.2 — Test mode routing**
-
-At the start of the notification block, use a `Condition` on `variables('varTestMode')`:
-- If **true**: all messages go to **Feature Test Site → General**
-- If **false**: messages route to their real team/channel per `teams/teams_mapping.md`
-
-This single flag controls all notification routing. Set `varTestMode = false` at go-live.
-
-**5.3 — Notification 1: Warehouse Team**
-- Action: `Post message in a chat or channel` (Microsoft Teams connector)
-- Team / Channel: **Warehouse Team → General** (or **Feature Test Site → General** if test mode)
-- Message template: see `teams/message_templates.md`
-- Must include: `varBrisbaneTime`, count of exported rows (`length(varExportRows)`), `varFileNameList` (one filename per line, built during Task 3 loop)
-
-**5.4 — Notification 2: Per Post to Location store**
-
-Each store receives details of their own orders only. Closed stores (030, 033, 045) receive no message.
-
-- Use a `Select` action on `varExportRows` to extract all Post to Location ID values
-- Deduplicate with: `@{union(body('Select_Locations'), body('Select_Locations'))}`
-- Loop over unique location IDs with `Apply to each`
-- **Skip condition:** if location ID is `030`, `033`, or `045` → continue (no message)
-- **Reroute condition:** if location ID is `001` or `002` → post to **Warehouse Team → General**
-- Otherwise: post to the team/channel mapped in `teams/teams_mapping.md`
-- If `varTestMode = true`: always post to **Feature Test Site → General** instead
-- Message template: see `teams/message_templates.md`
-
-> Full channel mapping: `teams/teams_mapping.md`. Team and channel IDs are resolved in Power Automate dropdowns at build time.
-
----
-
-### Task 6 — Error Handling: TeamsWork Ticket on Failure
-
-Wrap the entire flow body in a **Scope** action named `Main Flow`. Add a parallel branch with **Configure run after** set to run only on failure/timeout of the Main Flow scope.
-
-**6.1 — On failure: create a TeamsWork ticket**
-
-- Action: `HTTP`
-- Method: `POST`
-- URI:
-  ```
-  https://ticketing-apim-aus.azure-api.net/ticketing/v1/tickets?key=@{variables('varTeamsWorkAPIKey')}&timezone=10
-  ```
-  > timezone=10 for AEST (UTC+10)
-- Headers:
-  ```
-  Content-Type: application/json
-  ```
-- Body:
-  ```json
-  {
-    "ticket": {
-      "title": "Clothing Order Export Flow Failed — @{variables('varBrisbaneTime')}",
-      "description": "The scheduled Power Automate flow 'Clothing Order Export — Daily 7PM Brisbane' failed or timed out at @{variables('varBrisbaneTime')}. Please check the flow run history in Power Automate for error details.\n\nFlow: Clothing Order Export — Daily 7PM Brisbane\nRun time: @{variables('varBrisbaneTime')}",
-      "requestor": {
-        "id": "powerautomate",
-        "name": "Power Automate",
-        "email": "DavidN@pricesplus.com.au"
-      }
-    },
-    "user": {
-      "id": "powerautomate",
-      "name": "Power Automate",
-      "email": "DavidN@pricesplus.com.au"
-    }
-  }
-  ```
-
-**6.2 — TeamsWork API key**
-- Variable: `varTeamsWorkAPIKey` (initialised in Task 1.2)
-- The API key is obtained from TeamsWork app settings → API key section
-- Store in IT password manager — do not commit to repo
-- API connection to be set up at build time
-
----
-
-## Recommended Claude Code Setup
-
-This plan is intended to be executed using **Claude Code via the VS Code extension**, which is the recommended approach for someone already working with VS Code, Git, and GitLab.
-
-### Installation
-1. Open VS Code
-2. Go to the Extensions marketplace and search for **Claude Code**
-3. Install the Anthropic Claude Code extension
-4. Authenticate with your Anthropic account when prompted
-5. Claude Code will appear as a sidebar panel and inline within the editor
-
-### GitLab Integration
-1. Install the **GitLab plugin for Claude Code** from: `https://claude.com/plugins/gitlab`
-2. Connect it to your GitLab instance (supports both GitLab.com and self-hosted)
-3. Once connected, Claude Code can read issues, create merge requests, and view pipeline status directly from within the workflow
-
-### Suggested Repo Structure
-Create a GitLab repo for this project (e.g. `clothing-order-export`). Suggested structure:
-
-```
-clothing-order-export/
-├── README.md
-├── plan/
-│   └── clothing_order_export_plan.md   ← this document
-├── flow/
-│   └── flow_definition.json            ← exported Power Automate flow (for version control)
-├── csv/
-│   └── csv_structure.md                ← CSV column definition (to be added)
-└── teams/
-    └── message_templates.md            ← Teams message content (to be added at build time)
-```
-
-### How to Work With Claude Code on This Project
-- Open the repo folder in VS Code
-- Use the Claude Code sidebar to give instructions — Claude Code will read, create, and edit files directly in your workspace
-- Claude Code does **not** auto-commit or push — you retain full control over `git add`, `git commit`, and `git push` as normal
-- Power Automate flows cannot be built directly by Claude Code (they live in the Power Automate portal), but Claude Code can generate the full flow logic as a documented step-by-step guide or exportable JSON that you apply manually in the portal
-- Use GitLab to track versions of the plan, CSV structure, and any supporting scripts as they evolve
-
-### Note on Power Automate and Claude Code
-Claude Code cannot log into the Power Automate portal and click through the UI. What it **can** do is:
-- Produce precise, step-by-step build instructions referencing exact connector names, action names, and expression syntax
-- Generate any HTTP request bodies, JSON payloads, and Power Automate expressions needed
-- Help debug expressions if something doesn't behave as expected
-- Document the finished flow for the repo
-
-You (or someone with portal access) will apply the steps in the Power Automate portal, using Claude Code's output as the guide.
-
----
-
-## Notes for Claude Code
-
-- **Timezone:** Brisbane is `E. Australia Standard Time` (UTC+10, no daylight saving). All displayed times must use `convertTimeZone(utcNow(), 'UTC', 'E. Australia Standard Time', ...)`. The Recurrence trigger must be set to **09:00 UTC** to fire at 7:00 PM Brisbane time.
-- **One CSV per row:** Each qualifying Smartsheet row produces its own CSV file. Do not combine rows into a single file.
-- **File output:** Use the **File System** connector action (not SharePoint). Files are written directly to a UNC path on the internal network via the On-premises Data Gateway installed on PP01-SV06. See `gateway/gateway_setup.md` for setup. UNC path to be confirmed.
-- **CSV structure:** Column definitions will be provided before Task 3 is built. Do not assume column content.
-- **Smartsheet API token:** Do not hardcode. Use a Power Automate Connection reference or environment variable.
-- **Cell value lookup:** Smartsheet rows return a `cells` array. Always locate cells by matching `columnId`, never by array position.
-- **Batch Smartsheet updates:** Send all row tick-backs in a single PUT request (array body). One call, not one per row.
-- **Teams message content:** Both notification messages (warehouse and per-location) are to be defined interactively during the build session. Build placeholder actions and pause for content to be supplied.
-- **Teams channel mapping:** The location-to-channel mapping JSON will be supplied at build time. Build the lookup structure ready to receive it.
-- **No-rows scenario:** If no rows qualify (Picked Quantity > 0 and not yet exported), the flow should exit gracefully without creating files or sending notifications.
-- **Power Automate Premium:** Confirmed available. HTTP connector and SharePoint connector are both available.
-- **Test first:** Before enabling the 7PM schedule, test manually with 1–2 rows to verify CSV creation, Smartsheet tick-back, and Teams messages.
+- **Timezone:** Brisbane = `E. Australia Standard Time` (UTC+10, no DST). Trigger = 08:30 UTC.
+- **Cell lookup:** Always match by `columnId` — never by array position. Use `Query` (Filter Array) action.
+- **Batch Smartsheet update:** Single PUT call with array body — not one call per row.
+- **File connector:** File System connector (not SharePoint). Root `/` maps to `\\PPS2012\DataLoad\StkTrans`.
+- **Teams DM (failure):** Uses `body/recipient` (not `body/recipient/to`) — confirmed from working flow in this tenant.
+- **Channel posts:** Use `body/recipient/groupId` + `body/recipient/channelId`.
+- **newline in PA expressions:** Use `decodeUriComponent('%0A')` — `\n` is literal backslash-n in PA.
+- **Smartsheet API token:** Paste manually into `Initialize_varAPIToken` after import — never store in repo or files.
+- **Test rows:** Rows 105630 and 105676 have been used for testing. Un-tick Exported Transfer + clear Exported Date to re-test.
