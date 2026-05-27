@@ -267,6 +267,11 @@
                       "inputs": "@substring(outputs('Compose_ShirtSize'), add(indexOf(outputs('Compose_ShirtSize'), 'code '), 5), 7)",
                       "runAfter": { "Compose_ShirtSize": ["Succeeded"] }
                     },
+                    "Compose_ShirtDescription": {
+                      "type": "Compose",
+                      "inputs": "@if(equals(outputs('Compose_StockCode'), '9991001'), 'STAFF POLO SHIRT XS', if(equals(outputs('Compose_StockCode'), '9991002'), 'STAFF POLO SHIRT SML', if(equals(outputs('Compose_StockCode'), '9991003'), 'STAFF POLO SHIRT MED', if(equals(outputs('Compose_StockCode'), '9991004'), 'STAFF POLO SHIRT LGE', if(equals(outputs('Compose_StockCode'), '9991005'), 'STAFF POLO SHIRT XL', if(equals(outputs('Compose_StockCode'), '9991006'), 'STAFF POLO SHIRT XXL', if(equals(outputs('Compose_StockCode'), '9991007'), 'STAFF POLO SHIRT XXXL', 'UNKNOWN')))))))",
+                      "runAfter": { "Compose_StockCode": ["Succeeded"] }
+                    },
                     "Compose_RowUpdate": {
                       "type": "Compose",
                       "inputs": {
@@ -349,6 +354,7 @@
                           "employeeFullName": "@outputs('Compose_EmployeeFullName')",
                           "postToLocationID": "@outputs('Compose_PostToLocationID')",
                           "shirtSize": "@outputs('Compose_ShirtSize')",
+                          "shirtLine": "@concat(outputs('Compose_StockCode'), ' ', outputs('Compose_ShirtDescription'))",
                           "pickedQty": "@outputs('Compose_PickedQty')"
                         }
                       },
@@ -459,7 +465,7 @@
                       "type": "Select",
                       "inputs": {
                         "from": "@body('Filter_Rows_for_Location')",
-                        "select": "@concat(toUpper(string(item()?['employeeFullName'])), ' — ', trim(first(split(string(item()?['shirtSize']), ' ('))), ' × ', string(item()?['pickedQty']))"
+                        "select": "@concat('<strong>', toUpper(string(item()?['employeeFullName'])), ' — ', string(item()?['shirtLine']), ' × ', string(item()?['pickedQty']), '</strong>')"
                       },
                       "runAfter": { "Filter_Rows_for_Location": ["Succeeded"] }
                     },
