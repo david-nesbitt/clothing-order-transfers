@@ -538,7 +538,7 @@
             "parameters": {
               "poster": "Flow bot",
               "location": "Chat with Flow bot",
-              "body/recipient/to": "DavidN@pricesplus.com.au",
+              "body/recipient": "DavidN@pricesplus.com.au",
               "body/messageBody": "<p>⚠️ <strong>Clothing Order Export — Flow Failed</strong></p><p>The scheduled flow failed or timed out at <strong>@{variables('varBrisbaneTime')}</strong>.</p><p>Please check the <a href=\"https://make.powerautomate.com\">Power Automate run history</a> for error details.</p>"
             },
             "host": {
