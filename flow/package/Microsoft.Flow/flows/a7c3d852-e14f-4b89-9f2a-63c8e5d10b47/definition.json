@@ -155,58 +155,112 @@
               },
               "runAfter": { "Get_Smartsheet": ["Succeeded"] }
             },
-            "Filter_Qualifying_Rows": {
-              "type": "Compose",
-              "inputs": "@filter(body('Parse_Sheet_Response')?['rows'], and(equals(int(coalesce(string(first(filter(item()?['cells'], equals(string(item()?['columnId']), '3794673913778052')))?['value']), '0')), 100), not(equals(coalesce(first(filter(item()?['cells'], equals(string(item()?['columnId']), '2388194816724868')))?['value'], false), true))))",
-              "runAfter": { "Parse_Sheet_Response": ["Succeeded"] }
-            },
-            "Set_varExportRows": {
-              "type": "SetVariable",
-              "inputs": { "name": "varExportRows", "value": "@outputs('Filter_Qualifying_Rows')" },
-              "runAfter": { "Filter_Qualifying_Rows": ["Succeeded"] }
-            },
-            "Condition_Any_Rows": {
-              "type": "If",
-              "expression": { "and": [{ "greater": ["@length(variables('varExportRows'))", 0] }] },
+            "Apply_to_each_row": {
+              "type": "Foreach",
+              "foreach": "@body('Parse_Sheet_Response')?['rows']",
               "actions": {
-                "Apply_to_each_row": {
-                  "type": "Foreach",
-                  "foreach": "@variables('varExportRows')",
+                "Get_PickedQty_Cell": {
+                  "type": "Query",
+                  "inputs": {
+                    "from": "@item()?['cells']",
+                    "where": "@equals(string(item()?['columnId']), '3794673913778052')"
+                  },
+                  "runAfter": {}
+                },
+                "Get_Exported_Cell": {
+                  "type": "Query",
+                  "inputs": {
+                    "from": "@item()?['cells']",
+                    "where": "@equals(string(item()?['columnId']), '2388194816724868')"
+                  },
+                  "runAfter": {}
+                },
+                "Condition_Row_Qualifies": {
+                  "type": "If",
+                  "expression": "@and(equals(int(coalesce(string(first(body('Get_PickedQty_Cell'))?['value']), '0')), 100), not(equals(coalesce(first(body('Get_Exported_Cell'))?['value'], false), true)))",
                   "actions": {
+                    "Get_EmployeeID_Cell": {
+                      "type": "Query",
+                      "inputs": {
+                        "from": "@item()?['cells']",
+                        "where": "@equals(string(item()?['columnId']), '8551502017679236')"
+                      },
+                      "runAfter": {}
+                    },
+                    "Get_EmployeeFullName_Cell": {
+                      "type": "Query",
+                      "inputs": {
+                        "from": "@item()?['cells']",
+                        "where": "@equals(string(item()?['columnId']), '388727693070212')"
+                      },
+                      "runAfter": {}
+                    },
+                    "Get_PostToLocationID_Cell": {
+                      "type": "Query",
+                      "inputs": {
+                        "from": "@item()?['cells']",
+                        "where": "@equals(string(item()?['columnId']), '1533107887886212')"
+                      },
+                      "runAfter": {}
+                    },
+                    "Get_ShirtSize_Cell": {
+                      "type": "Query",
+                      "inputs": {
+                        "from": "@item()?['cells']",
+                        "where": "@equals(string(item()?['columnId']), '2640527506755460')"
+                      },
+                      "runAfter": {}
+                    },
+                    "Get_PickedDate_Cell": {
+                      "type": "Query",
+                      "inputs": {
+                        "from": "@item()?['cells']",
+                        "where": "@equals(string(item()?['columnId']), '6046473727463300')"
+                      },
+                      "runAfter": {}
+                    },
+                    "Get_CreatedDate_Cell": {
+                      "type": "Query",
+                      "inputs": {
+                        "from": "@item()?['cells']",
+                        "where": "@equals(string(item()?['columnId']), '2863694728875908')"
+                      },
+                      "runAfter": {}
+                    },
                     "Compose_EmployeeID": {
                       "type": "Compose",
-                      "inputs": "@string(first(filter(item()?['cells'], equals(string(item()?['columnId']), '8551502017679236')))?['value'])",
-                      "runAfter": {}
+                      "inputs": "@string(first(body('Get_EmployeeID_Cell'))?['value'])",
+                      "runAfter": { "Get_EmployeeID_Cell": ["Succeeded"] }
                     },
                     "Compose_EmployeeFullName": {
                       "type": "Compose",
-                      "inputs": "@string(first(filter(item()?['cells'], equals(string(item()?['columnId']), '388727693070212')))?['value'])",
-                      "runAfter": {}
+                      "inputs": "@string(first(body('Get_EmployeeFullName_Cell'))?['value'])",
+                      "runAfter": { "Get_EmployeeFullName_Cell": ["Succeeded"] }
                     },
                     "Compose_PostToLocationID": {
                       "type": "Compose",
-                      "inputs": "@string(first(filter(item()?['cells'], equals(string(item()?['columnId']), '1533107887886212')))?['value'])",
-                      "runAfter": {}
+                      "inputs": "@string(first(body('Get_PostToLocationID_Cell'))?['value'])",
+                      "runAfter": { "Get_PostToLocationID_Cell": ["Succeeded"] }
                     },
                     "Compose_ShirtSize": {
                       "type": "Compose",
-                      "inputs": "@string(first(filter(item()?['cells'], equals(string(item()?['columnId']), '2640527506755460')))?['value'])",
-                      "runAfter": {}
+                      "inputs": "@string(first(body('Get_ShirtSize_Cell'))?['value'])",
+                      "runAfter": { "Get_ShirtSize_Cell": ["Succeeded"] }
                     },
                     "Compose_PickedQty": {
                       "type": "Compose",
-                      "inputs": "@string(first(filter(item()?['cells'], equals(string(item()?['columnId']), '3794673913778052')))?['value'])",
+                      "inputs": "@string(first(body('Get_PickedQty_Cell'))?['value'])",
                       "runAfter": {}
                     },
                     "Compose_PickedDateISO": {
                       "type": "Compose",
-                      "inputs": "@string(first(filter(item()?['cells'], equals(string(item()?['columnId']), '6046473727463300')))?['value'])",
-                      "runAfter": {}
+                      "inputs": "@string(first(body('Get_PickedDate_Cell'))?['value'])",
+                      "runAfter": { "Get_PickedDate_Cell": ["Succeeded"] }
                     },
                     "Compose_CreatedDateISO": {
                       "type": "Compose",
-                      "inputs": "@string(first(filter(item()?['cells'], equals(string(item()?['columnId']), '2863694728875908')))?['value'])",
-                      "runAfter": {}
+                      "inputs": "@string(first(body('Get_CreatedDate_Cell'))?['value'])",
+                      "runAfter": { "Get_CreatedDate_Cell": ["Succeeded"] }
                     },
                     "Compose_StockCode": {
                       "type": "Compose",
@@ -269,20 +323,51 @@
                       },
                       "runAfter": { "Create_File": ["Succeeded"] }
                     },
+                    "Compose_RowUpdateForAppend": {
+                      "type": "Compose",
+                      "inputs": "@outputs('Compose_RowUpdate')",
+                      "runAfter": { "Compose_RowUpdate": ["Succeeded"] }
+                    },
                     "Append_RowUpdate": {
                       "type": "AppendToArrayVariable",
                       "inputs": {
                         "name": "varRowUpdates",
-                        "value": "@outputs('Compose_RowUpdate')"
+                        "value": "@outputs('Compose_RowUpdateForAppend')"
                       },
                       "runAfter": {
                         "Append_FileName_to_List": ["Succeeded"],
-                        "Compose_RowUpdate": ["Succeeded"]
+                        "Compose_RowUpdateForAppend": ["Succeeded"]
                       }
+                    },
+                    "Append_to_varExportRows": {
+                      "type": "AppendToArrayVariable",
+                      "inputs": {
+                        "name": "varExportRows",
+                        "value": {
+                          "rowId": "@item()?['id']",
+                          "employeeID": "@outputs('Compose_EmployeeID')",
+                          "employeeFullName": "@outputs('Compose_EmployeeFullName')",
+                          "postToLocationID": "@outputs('Compose_PostToLocationID')",
+                          "shirtSize": "@outputs('Compose_ShirtSize')",
+                          "pickedQty": "@outputs('Compose_PickedQty')"
+                        }
+                      },
+                      "runAfter": { "Append_RowUpdate": ["Succeeded"] }
                     }
                   },
-                  "runAfter": {}
-                },
+                  "else": { "actions": {} },
+                  "runAfter": {
+                    "Get_PickedQty_Cell": ["Succeeded"],
+                    "Get_Exported_Cell": ["Succeeded"]
+                  }
+                }
+              },
+              "runAfter": { "Parse_Sheet_Response": ["Succeeded"] }
+            },
+            "Condition_Any_Rows": {
+              "type": "If",
+              "expression": { "and": [{ "greater": ["@length(variables('varExportRows'))", 0] }] },
+              "actions": {
                 "HTTP_Update_Smartsheet": {
                   "type": "Http",
                   "inputs": {
@@ -294,13 +379,13 @@
                     },
                     "body": "@variables('varRowUpdates')"
                   },
-                  "runAfter": { "Apply_to_each_row": ["Succeeded"] }
+                  "runAfter": {}
                 },
                 "Select_LocationIDs": {
                   "type": "Select",
                   "inputs": {
                     "from": "@variables('varExportRows')",
-                    "select": "@string(first(filter(item()?['cells'], equals(string(item()?['columnId']), '1533107887886212')))?['value'])"
+                    "select": "@item()?['postToLocationID']"
                   },
                   "runAfter": { "HTTP_Update_Smartsheet": ["Succeeded"] }
                 },
@@ -366,7 +451,7 @@
                       "type": "Query",
                       "inputs": {
                         "from": "@variables('varExportRows')",
-                        "where": "@equals(string(first(filter(item()?['cells'], equals(string(item()?['columnId']), '1533107887886212')))?['value']), string(items('Apply_to_each_location')))"
+                        "where": "@equals(item()?['postToLocationID'], string(items('Apply_to_each_location')))"
                       },
                       "runAfter": {}
                     },
@@ -374,7 +459,7 @@
                       "type": "Select",
                       "inputs": {
                         "from": "@body('Filter_Rows_for_Location')",
-                        "select": "@concat(toUpper(string(first(filter(item()?['cells'], equals(string(item()?['columnId']), '388727693070212')))?['value'])), ' — ', trim(first(split(string(first(filter(item()?['cells'], equals(string(item()?['columnId']), '2640527506755460')))?['value']), ' ('))), ' × ', string(first(filter(item()?['cells'], equals(string(item()?['columnId']), '3794673913778052')))?['value']))"
+                        "select": "@concat(toUpper(string(item()?['employeeFullName'])), ' — ', trim(first(split(string(item()?['shirtSize']), ' ('))), ' × ', string(item()?['pickedQty']))"
                       },
                       "runAfter": { "Filter_Rows_for_Location": ["Succeeded"] }
                     },
@@ -439,7 +524,7 @@
                 }
               },
               "else": { "actions": {} },
-              "runAfter": { "Set_varExportRows": ["Succeeded"] }
+              "runAfter": { "Apply_to_each_row": ["Succeeded"] }
             }
           }
         },
@@ -449,6 +534,7 @@
             "method": "POST",
             "uri": "https://ticketing-apim-aus.azure-api.net/ticketing/v1/tickets?key=@{variables('varTeamsWorkAPIKey')}&timezone=10",
             "headers": { "Content-Type": "application/json" },
+            "retryPolicy": { "type": "none" },
             "body": {
               "ticket": {
                 "title": "Clothing Order Export Flow Failed — @{variables('varBrisbaneTime')}",
