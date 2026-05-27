@@ -156,16 +156,13 @@
               "runAfter": { "Get_Smartsheet": ["Succeeded"] }
             },
             "Filter_Qualifying_Rows": {
-              "type": "Query",
-              "inputs": {
-                "from": "@body('Parse_Sheet_Response')?['rows']",
-                "where": "@and(greater(int(coalesce(string(first(filter(item()?['cells'], equals(string(item()?['columnId']), '3794673913778052')))?['value']), '0')), 0), not(equals(coalesce(first(filter(item()?['cells'], equals(string(item()?['columnId']), '2388194816724868')))?['value'], false), true)))"
-              },
+              "type": "Compose",
+              "inputs": "@filter(body('Parse_Sheet_Response')?['rows'], and(equals(int(coalesce(string(first(filter(item()?['cells'], equals(string(item()?['columnId']), '3794673913778052')))?['value']), '0')), 100), not(equals(coalesce(first(filter(item()?['cells'], equals(string(item()?['columnId']), '2388194816724868')))?['value'], false), true))))",
               "runAfter": { "Parse_Sheet_Response": ["Succeeded"] }
             },
             "Set_varExportRows": {
               "type": "SetVariable",
-              "inputs": { "name": "varExportRows", "value": "@body('Filter_Qualifying_Rows')" },
+              "inputs": { "name": "varExportRows", "value": "@outputs('Filter_Qualifying_Rows')" },
               "runAfter": { "Filter_Qualifying_Rows": ["Succeeded"] }
             },
             "Condition_Any_Rows": {
