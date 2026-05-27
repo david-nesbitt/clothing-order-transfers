@@ -5,7 +5,7 @@
   "properties": {
     "apiId": "/providers/Microsoft.PowerApps/apis/shared_logicflows",
     "displayName": "Clothing Order Export — Daily 6:30PM Brisbane",
-    "description": "Exports qualifying clothing orders from Smartsheet as TXT files via On-premises Data Gateway, updates Smartsheet, sends Teams notifications, raises TeamsWork ticket on failure.",
+    "description": "Exports qualifying clothing orders from Smartsheet as TXT files via On-premises Data Gateway, updates Smartsheet, sends Teams notifications, sends a Teams DM to DavidN on failure.",
     "definition": {
       "metadata": {
         "workflowEntityId": null,
@@ -98,15 +98,10 @@
           "inputs": { "variables": [{ "name": "varFileNameList", "type": "string", "value": "" }] },
           "runAfter": { "Initialize_varTestMode": ["Succeeded"] }
         },
-        "Initialize_varTeamsWorkAPIKey": {
-          "type": "InitializeVariable",
-          "inputs": { "variables": [{ "name": "varTeamsWorkAPIKey", "type": "string", "value": "PASTE_TEAMSWORK_API_KEY_HERE" }] },
-          "runAfter": { "Initialize_varFileNameList": ["Succeeded"] }
-        },
         "Initialize_varRowUpdates": {
           "type": "InitializeVariable",
           "inputs": { "variables": [{ "name": "varRowUpdates", "type": "array", "value": [] }] },
-          "runAfter": { "Initialize_varTeamsWorkAPIKey": ["Succeeded"] }
+          "runAfter": { "Initialize_varFileNameList": ["Succeeded"] }
         },
         "Main_Flow": {
           "type": "Scope",
@@ -537,29 +532,21 @@
             }
           }
         },
-        "Create_TeamsWork_Ticket": {
-          "type": "Http",
+        "Post_Failure_Notification": {
+          "type": "OpenApiConnection",
           "inputs": {
-            "method": "POST",
-            "uri": "https://ticketing-apim-aus.azure-api.net/ticketing/v1/tickets?key=@{variables('varTeamsWorkAPIKey')}&timezone=10",
-            "headers": { "Content-Type": "application/json" },
-            "retryPolicy": { "type": "none" },
-            "body": {
-              "ticket": {
-                "title": "Clothing Order Export Flow Failed — @{variables('varBrisbaneTime')}",
-                "description": "The scheduled Power Automate flow 'Clothing Order Export — Daily 6:30PM Brisbane' failed or timed out at @{variables('varBrisbaneTime')}. Please check the flow run history in Power Automate for error details.",
-                "requestor": {
-                  "id": "powerautomate",
-                  "name": "Power Automate",
-                  "email": "DavidN@pricesplus.com.au"
-                }
-              },
-              "user": {
-                "id": "powerautomate",
-                "name": "Power Automate",
-                "email": "DavidN@pricesplus.com.au"
-              }
-            }
+            "parameters": {
+              "poster": "Flow bot",
+              "location": "Chat with Flow bot",
+              "body/recipient/to": "DavidN@pricesplus.com.au",
+              "body/messageBody": "<p><strong>⚠️ Clothing Order Export — Flow Failed</strong></p><p>The scheduled flow failed or timed out at <strong>@{variables('varBrisbaneTime')}</strong>.</p><p>Please check the flow run history in Power Automate for error details.</p>"
+            },
+            "host": {
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_teams",
+              "connectionName": "shared_teams",
+              "operationId": "PostMessageToConversation"
+            },
+            "authentication": "@parameters('$authentication')"
           },
           "runAfter": { "Main_Flow": ["Failed", "TimedOut"] }
         }
