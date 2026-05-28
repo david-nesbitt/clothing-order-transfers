@@ -1,0 +1,466 @@
+{
+  "name": "e1f2a3b4-c5d6-4e7f-8a9b-c0d1e2f3a4b5",
+  "id": "/providers/Microsoft.Flow/flows/e1f2a3b4-c5d6-4e7f-8a9b-c0d1e2f3a4b5",
+  "type": "Microsoft.Flow/flows",
+  "properties": {
+    "apiId": "/providers/Microsoft.PowerApps/apis/shared_logicflows",
+    "displayName": "Clothing Return Export — Daily 6:45PM Brisbane",
+    "description": "Exports shirt returns from Smartsheet as TXT files via On-premises Data Gateway, updates Smartsheet, sends Teams notification to Warehouse Team, sends a Teams DM to DavidN on failure.",
+    "definition": {
+      "metadata": {
+        "workflowEntityId": null,
+        "processAdvisorMetadata": null,
+        "flowChargedByPaygo": null,
+        "flowclientsuspensionreason": "None",
+        "flowclientsuspensiontime": null,
+        "flowclientsuspensionreasondetails": null,
+        "creator": {
+          "id": "f5fb3d6c-fa80-4cec-8163-ce7496de32f3",
+          "type": "User",
+          "tenantId": "bbb79140-c248-48b2-a931-71c496cbbcfe"
+        },
+        "provisioningMethod": "FromDefinition",
+        "failureAlertSubscription": false,
+        "clientLastModifiedTime": "2026-05-28T00:00:00.0000000Z",
+        "connectionKeySavedTimeKey": "2026-05-28T00:00:00.0000000Z",
+        "creationSource": "Portal",
+        "modifiedSources": "Portal"
+      },
+      "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+      "contentVersion": "undefined",
+      "parameters": {
+        "$authentication": { "defaultValue": {}, "type": "SecureObject" },
+        "$connections": { "defaultValue": {}, "type": "Object" }
+      },
+      "triggers": {
+        "Recurrence": {
+          "recurrence": {
+            "frequency": "Day",
+            "interval": "1",
+            "startTime": "2026-05-28T08:45:00.000Z"
+          },
+          "evaluatedRecurrence": {
+            "frequency": "Day",
+            "interval": "1",
+            "startTime": "2026-05-28T08:45:00.000Z"
+          },
+          "type": "Recurrence"
+        }
+      },
+      "actions": {
+        "Initialize_varSheetId": {
+          "type": "InitializeVariable",
+          "inputs": { "variables": [{ "name": "varSheetId", "type": "string", "value": "5041000518995844" }] },
+          "runAfter": {}
+        },
+        "Initialize_varAPIToken": {
+          "type": "InitializeVariable",
+          "inputs": { "variables": [{ "name": "varAPIToken", "type": "string", "value": "PASTE_SMARTSHEET_API_TOKEN_HERE" }] },
+          "runAfter": { "Initialize_varSheetId": ["Succeeded"] }
+        },
+        "Initialize_varReturningColId": {
+          "type": "InitializeVariable",
+          "inputs": { "variables": [{ "name": "varReturningColId", "type": "string", "value": "8475089208381316" }] },
+          "runAfter": { "Initialize_varAPIToken": ["Succeeded"] }
+        },
+        "Initialize_varDateReturnedColId": {
+          "type": "InitializeVariable",
+          "inputs": { "variables": [{ "name": "varDateReturnedColId", "type": "string", "value": "312314883772292" }] },
+          "runAfter": { "Initialize_varReturningColId": ["Succeeded"] }
+        },
+        "Initialize_varQtyReturnedColId": {
+          "type": "InitializeVariable",
+          "inputs": { "variables": [{ "name": "varQtyReturnedColId", "type": "string", "value": "4815914511142788" }] },
+          "runAfter": { "Initialize_varDateReturnedColId": ["Succeeded"] }
+        },
+        "Initialize_varReturnedExportedDateColId": {
+          "type": "InitializeVariable",
+          "inputs": { "variables": [{ "name": "varReturnedExportedDateColId", "type": "string", "value": "2564114697457540" }] },
+          "runAfter": { "Initialize_varQtyReturnedColId": ["Succeeded"] }
+        },
+        "Initialize_varReturnedExportedColId": {
+          "type": "InitializeVariable",
+          "inputs": { "variables": [{ "name": "varReturnedExportedColId", "type": "string", "value": "7067714324828036" }] },
+          "runAfter": { "Initialize_varReturnedExportedDateColId": ["Succeeded"] }
+        },
+        "Initialize_varBrisbaneTime": {
+          "type": "InitializeVariable",
+          "inputs": { "variables": [{ "name": "varBrisbaneTime", "type": "string", "value": "@{convertTimeZone(utcNow(), 'UTC', 'E. Australia Standard Time', 'dd/MM/yyyy HH:mm')}" }] },
+          "runAfter": { "Initialize_varReturnedExportedColId": ["Succeeded"] }
+        },
+        "Initialize_varBrisbaneDate": {
+          "type": "InitializeVariable",
+          "inputs": { "variables": [{ "name": "varBrisbaneDate", "type": "string", "value": "@{convertTimeZone(utcNow(), 'UTC', 'E. Australia Standard Time', 'yyyy-MM-dd')}" }] },
+          "runAfter": { "Initialize_varBrisbaneTime": ["Succeeded"] }
+        },
+        "Initialize_varTimestamp": {
+          "type": "InitializeVariable",
+          "inputs": { "variables": [{ "name": "varTimestamp", "type": "string", "value": "@{convertTimeZone(utcNow(), 'UTC', 'E. Australia Standard Time', 'yyyyMMdd_HHmm')}" }] },
+          "runAfter": { "Initialize_varBrisbaneDate": ["Succeeded"] }
+        },
+        "Initialize_varTestMode": {
+          "type": "InitializeVariable",
+          "inputs": { "variables": [{ "name": "varTestMode", "type": "boolean", "value": true }] },
+          "runAfter": { "Initialize_varTimestamp": ["Succeeded"] }
+        },
+        "Initialize_varFileNameList": {
+          "type": "InitializeVariable",
+          "inputs": { "variables": [{ "name": "varFileNameList", "type": "string", "value": "" }] },
+          "runAfter": { "Initialize_varTestMode": ["Succeeded"] }
+        },
+        "Initialize_varRowUpdates": {
+          "type": "InitializeVariable",
+          "inputs": { "variables": [{ "name": "varRowUpdates", "type": "array", "value": [] }] },
+          "runAfter": { "Initialize_varFileNameList": ["Succeeded"] }
+        },
+        "Main_Flow": {
+          "type": "Scope",
+          "runAfter": { "Initialize_varRowUpdates": ["Succeeded"] },
+          "actions": {
+            "Get_Smartsheet": {
+              "type": "Http",
+              "inputs": {
+                "method": "GET",
+                "uri": "https://api.smartsheet.com/2.0/sheets/@{variables('varSheetId')}?includeAll=true",
+                "headers": {
+                  "Authorization": "Bearer @{variables('varAPIToken')}",
+                  "Content-Type": "application/json"
+                }
+              },
+              "runAfter": {}
+            },
+            "Parse_Sheet_Response": {
+              "type": "ParseJson",
+              "inputs": {
+                "content": "@body('Get_Smartsheet')",
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "rows": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": { "type": "integer" },
+                          "cells": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "columnId": { "type": "integer" },
+                                "value": {}
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              "runAfter": { "Get_Smartsheet": ["Succeeded"] }
+            },
+            "Apply_to_each_row": {
+              "type": "Foreach",
+              "foreach": "@body('Parse_Sheet_Response')?['rows']",
+              "actions": {
+                "Get_Returning_Cell": {
+                  "type": "Query",
+                  "inputs": {
+                    "from": "@item()?['cells']",
+                    "where": "@equals(string(item()?['columnId']), '8475089208381316')"
+                  },
+                  "runAfter": {}
+                },
+                "Get_DateReturned_Cell": {
+                  "type": "Query",
+                  "inputs": {
+                    "from": "@item()?['cells']",
+                    "where": "@equals(string(item()?['columnId']), '312314883772292')"
+                  },
+                  "runAfter": {}
+                },
+                "Get_QtyReturned_Cell": {
+                  "type": "Query",
+                  "inputs": {
+                    "from": "@item()?['cells']",
+                    "where": "@equals(string(item()?['columnId']), '4815914511142788')"
+                  },
+                  "runAfter": {}
+                },
+                "Get_ReturnedExported_Cell": {
+                  "type": "Query",
+                  "inputs": {
+                    "from": "@item()?['cells']",
+                    "where": "@equals(string(item()?['columnId']), '7067714324828036')"
+                  },
+                  "runAfter": {}
+                },
+                "Condition_Row_Qualifies": {
+                  "type": "If",
+                  "expression": "@and(equals(coalesce(first(body('Get_Returning_Cell'))?['value'], false), true), not(empty(string(coalesce(first(body('Get_DateReturned_Cell'))?['value'], '')))), greater(int(coalesce(string(first(body('Get_QtyReturned_Cell'))?['value']), '0')), 0), not(equals(coalesce(first(body('Get_ReturnedExported_Cell'))?['value'], false), true)))",
+                  "actions": {
+                    "Get_EmployeeID_Cell": {
+                      "type": "Query",
+                      "inputs": {
+                        "from": "@item()?['cells']",
+                        "where": "@equals(string(item()?['columnId']), '8551502017679236')"
+                      },
+                      "runAfter": {}
+                    },
+                    "Get_EmployeeFullName_Cell": {
+                      "type": "Query",
+                      "inputs": {
+                        "from": "@item()?['cells']",
+                        "where": "@equals(string(item()?['columnId']), '388727693070212')"
+                      },
+                      "runAfter": {}
+                    },
+                    "Get_PostToLocationID_Cell": {
+                      "type": "Query",
+                      "inputs": {
+                        "from": "@item()?['cells']",
+                        "where": "@equals(string(item()?['columnId']), '1533107887886212')"
+                      },
+                      "runAfter": {}
+                    },
+                    "Get_ShirtSize_Cell": {
+                      "type": "Query",
+                      "inputs": {
+                        "from": "@item()?['cells']",
+                        "where": "@equals(string(item()?['columnId']), '2640527506755460')"
+                      },
+                      "runAfter": {}
+                    },
+                    "Compose_QtyReturned": {
+                      "type": "Compose",
+                      "inputs": "@string(first(body('Get_QtyReturned_Cell'))?['value'])",
+                      "runAfter": {}
+                    },
+                    "Compose_DateReturnedISO": {
+                      "type": "Compose",
+                      "inputs": "@string(first(body('Get_DateReturned_Cell'))?['value'])",
+                      "runAfter": {}
+                    },
+                    "Compose_RowUpdate": {
+                      "type": "Compose",
+                      "inputs": {
+                        "id": "@item()?['id']",
+                        "cells": [
+                          { "columnId": 7067714324828036, "value": true },
+                          { "columnId": 2564114697457540, "value": "@variables('varBrisbaneDate')" }
+                        ]
+                      },
+                      "runAfter": {}
+                    },
+                    "Compose_EmployeeID": {
+                      "type": "Compose",
+                      "inputs": "@string(first(body('Get_EmployeeID_Cell'))?['value'])",
+                      "runAfter": { "Get_EmployeeID_Cell": ["Succeeded"] }
+                    },
+                    "Compose_EmployeeFullName": {
+                      "type": "Compose",
+                      "inputs": "@string(first(body('Get_EmployeeFullName_Cell'))?['value'])",
+                      "runAfter": { "Get_EmployeeFullName_Cell": ["Succeeded"] }
+                    },
+                    "Compose_PostToLocationID": {
+                      "type": "Compose",
+                      "inputs": "@string(first(body('Get_PostToLocationID_Cell'))?['value'])",
+                      "runAfter": { "Get_PostToLocationID_Cell": ["Succeeded"] }
+                    },
+                    "Compose_ShirtSize": {
+                      "type": "Compose",
+                      "inputs": "@string(first(body('Get_ShirtSize_Cell'))?['value'])",
+                      "runAfter": { "Get_ShirtSize_Cell": ["Succeeded"] }
+                    },
+                    "Compose_StockCode": {
+                      "type": "Compose",
+                      "inputs": "@substring(outputs('Compose_ShirtSize'), add(indexOf(outputs('Compose_ShirtSize'), 'code '), 5), 7)",
+                      "runAfter": { "Compose_ShirtSize": ["Succeeded"] }
+                    },
+                    "Compose_FileName": {
+                      "type": "Compose",
+                      "inputs": "@concat('STKTRAN_', outputs('Compose_PostToLocationID'), '_', outputs('Compose_EmployeeID'), '_', formatDateTime(outputs('Compose_DateReturnedISO'), 'yyyy-MM-dd'), '.txt')",
+                      "runAfter": {
+                        "Compose_EmployeeID": ["Succeeded"],
+                        "Compose_PostToLocationID": ["Succeeded"],
+                        "Compose_DateReturnedISO": ["Succeeded"],
+                        "Compose_StockCode": ["Succeeded"]
+                      }
+                    },
+                    "Compose_FileContent": {
+                      "type": "Compose",
+                      "inputs": "@concat(',', formatDateTime(outputs('Compose_DateReturnedISO'), 'dd/MM/yyyy'), ',STAFF SHIRT RETURNED,S,', outputs('Compose_PostToLocationID'), ',001,', outputs('Compose_StockCode'), ',', outputs('Compose_EmployeeID'), ' ', toUpper(outputs('Compose_EmployeeFullName')), ',', outputs('Compose_QtyReturned'), ',', outputs('Compose_EmployeeID'), ',SHIRT RETURNED,', formatDateTime(outputs('Compose_DateReturnedISO'), 'dd/MM/yyyy'), ',', formatDateTime(outputs('Compose_DateReturnedISO'), 'dd/MM/yyyy'), ',', outputs('Compose_PostToLocationID'), '-', outputs('Compose_StockCode'))",
+                      "runAfter": {
+                        "Compose_FileName": ["Succeeded"],
+                        "Compose_EmployeeFullName": ["Succeeded"],
+                        "Compose_QtyReturned": ["Succeeded"]
+                      }
+                    },
+                    "Create_File": {
+                      "type": "OpenApiConnection",
+                      "inputs": {
+                        "parameters": {
+                          "folderPath": "/",
+                          "name": "@outputs('Compose_FileName')",
+                          "body": "@outputs('Compose_FileContent')"
+                        },
+                        "host": {
+                          "apiId": "/providers/Microsoft.PowerApps/apis/shared_filesystem",
+                          "connectionName": "shared_filesystem",
+                          "operationId": "CreateFile"
+                        },
+                        "authentication": "@parameters('$authentication')"
+                      },
+                      "runAfter": { "Compose_FileContent": ["Succeeded"] }
+                    },
+                    "Append_FileName_to_List": {
+                      "type": "AppendToStringVariable",
+                      "inputs": {
+                        "name": "varFileNameList",
+                        "value": "@{outputs('Compose_FileName')}\n"
+                      },
+                      "runAfter": { "Create_File": ["Succeeded"] }
+                    },
+                    "Compose_RowUpdateForAppend": {
+                      "type": "Compose",
+                      "inputs": "@outputs('Compose_RowUpdate')",
+                      "runAfter": { "Compose_RowUpdate": ["Succeeded"] }
+                    },
+                    "Append_RowUpdate": {
+                      "type": "AppendToArrayVariable",
+                      "inputs": {
+                        "name": "varRowUpdates",
+                        "value": "@outputs('Compose_RowUpdateForAppend')"
+                      },
+                      "runAfter": {
+                        "Append_FileName_to_List": ["Succeeded"],
+                        "Compose_RowUpdateForAppend": ["Succeeded"]
+                      }
+                    }
+                  },
+                  "else": { "actions": {} },
+                  "runAfter": {
+                    "Get_Returning_Cell": ["Succeeded"],
+                    "Get_DateReturned_Cell": ["Succeeded"],
+                    "Get_QtyReturned_Cell": ["Succeeded"],
+                    "Get_ReturnedExported_Cell": ["Succeeded"]
+                  }
+                }
+              },
+              "runAfter": { "Parse_Sheet_Response": ["Succeeded"] }
+            },
+            "Condition_Any_Rows": {
+              "type": "If",
+              "expression": { "and": [{ "greater": ["@length(variables('varRowUpdates'))", 0] }] },
+              "actions": {
+                "HTTP_Update_Smartsheet": {
+                  "type": "Http",
+                  "inputs": {
+                    "method": "PUT",
+                    "uri": "https://api.smartsheet.com/2.0/sheets/@{variables('varSheetId')}/rows",
+                    "headers": {
+                      "Authorization": "Bearer @{variables('varAPIToken')}",
+                      "Content-Type": "application/json"
+                    },
+                    "body": "@variables('varRowUpdates')"
+                  },
+                  "runAfter": {}
+                },
+                "Condition_TestMode_Warehouse": {
+                  "type": "If",
+                  "expression": { "and": [{ "equals": ["@variables('varTestMode')", "@true"] }] },
+                  "actions": {
+                    "Post_Warehouse_Test": {
+                      "type": "OpenApiConnection",
+                      "inputs": {
+                        "parameters": {
+                          "poster": "Flow bot",
+                          "location": "Channel",
+                          "body/recipient/groupId": "9271f6a0-9033-4f48-95b4-651e0ee89b33",
+                          "body/recipient/channelId": "19:aSON0t2WsWaPWR5n1n42gC_UYS7D3kdGWOAneDvuLJQ1@thread.tacv2",
+                          "body/messageBody": "<p>Returned clothing items have been exported as Return Transfers.</p><p><strong>@{variables('varBrisbaneTime')}</strong> &nbsp; @{length(variables('varRowUpdates'))} return transfer file(s)</p><p>@{replace(variables('varFileNameList'), decodeUriComponent('%0A'), '<br/>')}</p>"
+                        },
+                        "host": {
+                          "apiId": "/providers/Microsoft.PowerApps/apis/shared_teams",
+                          "connectionName": "shared_teams",
+                          "operationId": "PostMessageToConversation"
+                        },
+                        "authentication": "@parameters('$authentication')"
+                      },
+                      "runAfter": {}
+                    }
+                  },
+                  "else": {
+                    "actions": {
+                      "Post_Warehouse_Live": {
+                        "type": "OpenApiConnection",
+                        "inputs": {
+                          "parameters": {
+                            "poster": "Flow bot",
+                            "location": "Channel",
+                            "body/recipient/groupId": "e8132bda-7152-45df-b1ca-de0f52a41977",
+                            "body/recipient/channelId": "19:7q7EU6zu9oaE54aW9AEnW8xrHSYCq_zDoWXqHyig2_k1@thread.tacv2",
+                            "body/messageBody": "<p>Returned clothing items have been exported as Return Transfers.</p><p><strong>@{variables('varBrisbaneTime')}</strong> &nbsp; @{length(variables('varRowUpdates'))} return transfer file(s)</p><p>@{replace(variables('varFileNameList'), decodeUriComponent('%0A'), '<br/>')}</p>"
+                          },
+                          "host": {
+                            "apiId": "/providers/Microsoft.PowerApps/apis/shared_teams",
+                            "connectionName": "shared_teams",
+                            "operationId": "PostMessageToConversation"
+                          },
+                          "authentication": "@parameters('$authentication')"
+                        },
+                        "runAfter": {}
+                      }
+                    }
+                  },
+                  "runAfter": { "HTTP_Update_Smartsheet": ["Succeeded"] }
+                }
+              },
+              "else": { "actions": {} },
+              "runAfter": { "Apply_to_each_row": ["Succeeded"] }
+            }
+          }
+        },
+        "Post_Failure_Notification": {
+          "type": "OpenApiConnection",
+          "inputs": {
+            "parameters": {
+              "poster": "Flow bot",
+              "location": "Chat with Flow bot",
+              "body/recipient": "DavidN@pricesplus.com.au",
+              "body/messageBody": "<p>⚠️ <strong>Clothing Return Export — Flow Failed</strong></p><p>The scheduled flow failed or timed out at <strong>@{variables('varBrisbaneTime')}</strong>.</p><p>Please check the <a href=\"https://make.powerautomate.com\">Power Automate run history</a> for error details.</p>"
+            },
+            "host": {
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_teams",
+              "connectionName": "shared_teams",
+              "operationId": "PostMessageToConversation"
+            },
+            "authentication": "@parameters('$authentication')"
+          },
+          "runAfter": { "Main_Flow": ["Failed", "TimedOut"] }
+        }
+      }
+    },
+    "connectionReferences": {
+      "shared_filesystem": {
+        "connectionName": "ce2bbe4bdbbe49b4a80adb2879679f90",
+        "source": "Embedded",
+        "id": "/providers/Microsoft.PowerApps/apis/shared_filesystem",
+        "tier": "NotSpecified",
+        "apiName": "filesystem",
+        "isProcessSimpleApiReferenceConversionAlreadyDone": false
+      },
+      "shared_teams": {
+        "connectionName": "shared-teams-f736e2e4-848d-4115-a112-df46e497f6e0",
+        "source": "Embedded",
+        "id": "/providers/Microsoft.PowerApps/apis/shared_teams",
+        "tier": "NotSpecified",
+        "apiName": "teams",
+        "isProcessSimpleApiReferenceConversionAlreadyDone": false
+      }
+    },
+    "flowFailureAlertSubscribed": false,
+    "isManaged": false
+  }
+}
