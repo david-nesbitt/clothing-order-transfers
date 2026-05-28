@@ -332,7 +332,7 @@
                     },
                     "Compose_CSVContent": {
                       "type": "Compose",
-                      "inputs": "@concat(',', formatDateTime(outputs('Compose_PickedDateISO'), 'dd/MM/yyyy'), ',', outputs('Compose_EmployeeID'), ' CLOTHING ORDER,S,001,', outputs('Compose_PostToLocationID'), ',', outputs('Compose_StockCode'), ',', outputs('Compose_EmployeeID'), ' ', toUpper(outputs('Compose_EmployeeFullName')), ',', outputs('Compose_PickedQty'), ',', outputs('Compose_EmployeeID'), ',SHIRT ORDER,', formatDateTime(outputs('Compose_PickedDateISO'), 'dd/MM/yyyy'), ',', formatDateTime(outputs('Compose_CreatedDateISO'), 'dd/MM/yyyy'), ',', outputs('Compose_EmployeeID'), '-', outputs('Compose_StockCode'))",
+                      "inputs": "@concat(',', formatDateTime(outputs('Compose_PickedDateISO'), 'dd/MM/yyyy'), ',', 'STAFF SHIRT ORDER,S,001,', outputs('Compose_PostToLocationID'), ',', outputs('Compose_StockCode'), ',', outputs('Compose_EmployeeID'), ' ', toUpper(outputs('Compose_EmployeeFullName')), ',', outputs('Compose_PickedQty'), ',', outputs('Compose_EmployeeID'), ',SHIRT ORDER,', formatDateTime(outputs('Compose_PickedDateISO'), 'dd/MM/yyyy'), ',', formatDateTime(outputs('Compose_CreatedDateISO'), 'dd/MM/yyyy'), ',', outputs('Compose_EmployeeID'), '-', outputs('Compose_StockCode'))",
                       "runAfter": {
                         "Compose_FileName": ["Succeeded"],
                         "Compose_EmployeeFullName": ["Succeeded"],

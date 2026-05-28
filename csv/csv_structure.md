@@ -29,7 +29,7 @@ concat('STKTRAN_', <PostToLocationID>, '_', <EmployeeID>, '_', formatDateTime(<P
 |---|---|---|---|
 | 1 | DOC_HEADS_REFERENCE_NBR | Always empty | `''` |
 | 2 | DOC_HEADS_TRANS_DATE | {Picked Date} — DD/MM/YYYY | `formatDateTime(<PickedDate>, 'dd/MM/yyyy')` |
-| 3 | DOC_HEADS_DETAIL | {Employee ID} + space + "CLOTHING ORDER" | `concat(<EmployeeID>, ' CLOTHING ORDER')` |
+| 3 | DOC_HEADS_DETAIL | Always `STAFF SHIRT ORDER` (static) | `'STAFF SHIRT ORDER'` |
 | 4 | TRANS_LINES_LINE_TYPE | Always `S` (static) | `'S'` |
 | 5 | DOC_HEADS_STOCK_LOCATION | Always `001` (Warehouse — static) | `'001'` |
 | 6 | TRANS_LINES_STOCK_LOCATION | {Post to Location ID} — 3 digits, leading zero preserved | `<PostToLocationID>` |
@@ -47,7 +47,7 @@ concat('STKTRAN_', <PostToLocationID>, '_', <EmployeeID>, '_', formatDateTime(<P
 ### Example Output
 
 ```
-,30/04/2026,105676 CLOTHING ORDER,S,001,014,9991002,105767 KINGSLY WESTON,1,105676,SHIRT ORDER,30/04/2026,30/04/2026,105676-9991002
+,30/04/2026,STAFF SHIRT ORDER,S,001,014,9991002,105767 KINGSLY WESTON,1,105676,SHIRT ORDER,30/04/2026,30/04/2026,105676-9991002
 ```
 
 ---
