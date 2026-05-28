@@ -100,7 +100,7 @@
         },
         "Initialize_varTestMode": {
           "type": "InitializeVariable",
-          "inputs": { "variables": [{ "name": "varTestMode", "type": "boolean", "value": true }] },
+          "inputs": { "variables": [{ "name": "varTestMode", "type": "boolean", "value": false }] },
           "runAfter": { "Initialize_varTimestamp": ["Succeeded"] }
         },
         "Initialize_varFileNameList": {
