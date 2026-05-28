@@ -105,25 +105,44 @@ WHERE st.TRANS_TYPE  = 'DRINV'
 ORDER BY st.STOCK_LOCATION, CONVERT(date, st.TRANS_DATE)
 "@
 
+$dtOutstanding = qry @"
+SELECT
+    t.STORE_LOCATION,
+    t.STOCK_CODE,
+    t.QTY_TRANSFERRED - ISNULL(s.QTY_SOLD, 0) AS QTY_OUTSTANDING
+FROM (
+    SELECT st.STOCK_LOCATION AS STORE_LOCATION, st.STOCK_CODE, SUM(st.ENTERED_QTY) AS QTY_TRANSFERRED
+    FROM dbo.STK_TRANS st
+    WHERE st.TRANS_TYPE = 'STTRF' AND st.USER_FIELD_2 = 'SHIRT ORDER'
+      AND st.STOCK_CODE LIKE '999100%' AND st.COMPANY_CODE = 'OS' AND st.ENTERED_QTY > 0
+    GROUP BY st.STOCK_LOCATION, st.STOCK_CODE
+) t
+LEFT JOIN (
+    SELECT st.STOCK_LOCATION AS STORE_LOCATION, st.STOCK_CODE, SUM(ABS(st.ENTERED_QTY)) AS QTY_SOLD
+    FROM dbo.STK_TRANS st
+    WHERE st.TRANS_TYPE = 'DRINV' AND st.STOCK_CODE LIKE '999100%' AND st.COMPANY_CODE = 'OS'
+      AND CONVERT(date, st.TRANS_DATE) >= (
+          SELECT MIN(CONVERT(date, t2.TRANS_DATE))
+          FROM dbo.STK_TRANS t2
+          WHERE t2.TRANS_TYPE = 'STTRF' AND t2.USER_FIELD_2 = 'SHIRT ORDER'
+            AND t2.STOCK_CODE = st.STOCK_CODE AND t2.STOCK_LOCATION = st.STOCK_LOCATION
+            AND t2.COMPANY_CODE = 'OS' AND t2.ENTERED_QTY > 0
+      )
+    GROUP BY st.STOCK_LOCATION, st.STOCK_CODE
+) s ON s.STORE_LOCATION = t.STORE_LOCATION AND s.STOCK_CODE = t.STOCK_CODE
+WHERE t.QTY_TRANSFERRED - ISNULL(s.QTY_SOLD, 0) > 0
+"@
+
 $conn.Close()
-Write-Host ("Loaded: {0} on-hand, {1} transfers, {2} DRINV sales" -f $dtOnHand.Rows.Count, $dtXfer.Rows.Count, $dtSales.Rows.Count)
+Write-Host ("Loaded: {0} on-hand, {1} transfers, {2} DRINV sales, {3} outstanding rows" -f $dtOnHand.Rows.Count, $dtXfer.Rows.Count, $dtSales.Rows.Count, $dtOutstanding.Rows.Count)
 
 # ---------------------------------------------------------------
-# PRE-COMPUTE OUTSTANDING MAP (store+code -> outstanding qty)
+# BUILD OUTSTANDING MAP from SQL result (store+code -> outstanding qty)
 # ---------------------------------------------------------------
 $outstandingMap = @{}
-$allXferStores = @($dtXfer | ForEach-Object { $_.STORE } | Sort-Object -Unique)
-foreach ($st in $allXferStores) {
-    $stX = @($dtXfer  | Where-Object { $_.STORE -eq $st })
-    $stS = @($dtSales | Where-Object { $_.STORE -eq $st })
-    $stCodes = (($stX | ForEach-Object { $_.STOCK_CODE }) + ($stS | ForEach-Object { $_.STOCK_CODE })) | Sort-Object -Unique
-    foreach ($cd in $stCodes) {
-        $cX = @($stX | Where-Object { $_.STOCK_CODE -eq $cd })
-        $cS = @($stS | Where-Object { $_.STOCK_CODE -eq $cd })
-        $xT = if ($cX.Count) { n (($cX | Measure-Object -Property QTY -Sum).Sum) } else { 0.0 }
-        $sT = if ($cS.Count) { n (($cS | Measure-Object -Property QTY -Sum).Sum) } else { 0.0 }
-        $outstandingMap["${st}|${cd}"] = $xT - $sT
-    }
+$dtOutstanding | ForEach-Object {
+    $key = "$($_.STORE_LOCATION)|$($_.STOCK_CODE)"
+    $outstandingMap[$key] = n $_.QTY_OUTSTANDING
 }
 
 function getOutstanding($store, $code) {
@@ -246,7 +265,7 @@ foreach ($loc in $ohLocs) {
         $oc = ohCol $c; $ouc = outCol $c
         $ohQty  = getOnHand      $loc $shirtCodes[$c]
         $outQty = getOutstanding $loc $shirtCodes[$c]
-        if ($ohQty  -gt 0) { setNum $ws1 $r $oc  $ohQty  }
+        if ($ohQty  -ne 0) { setNum $ws1 $r $oc  $ohQty  }
         if ($outQty -ne 0) { setNum $ws1 $r $ouc $outQty }
         $rowOHTotal  += $ohQty
         $rowOutTotal += $outQty
@@ -280,7 +299,7 @@ for ($c = 0; $c -lt $nCodes; $c++) {
         $colOH  += getOnHand      $loc $shirtCodes[$c]
         $colOut += getOutstanding $loc $shirtCodes[$c]
     }
-    if ($colOH  -gt 0) { setNum $ws1 $r $oc  $colOH  }
+    if ($colOH  -ne 0) { setNum $ws1 $r $oc  $colOH  }
     if ($colOut -ne 0) { setNum $ws1 $r $ouc $colOut }
     $grandOH  += $colOH
     $grandOut += $colOut
