@@ -456,7 +456,7 @@
                           "location": "Channel",
                           "body/recipient/groupId": "9271f6a0-9033-4f48-95b4-651e0ee89b33",
                           "body/recipient/channelId": "19:aSON0t2WsWaPWR5n1n42gC_UYS7D3kdGWOAneDvuLJQ1@thread.tacv2",
-                          "body/messageBody": "<p>[TEST MODE] Picked clothing orders have been exported as Transfers.</p><p><strong>@{variables('varBrisbaneTime')}</strong> &nbsp; @{length(variables('varExportRows'))} transfer file(s)</p><p>@{replace(variables('varFileNameList'), decodeUriComponent('%0A'), '<br/>')}</p>"
+                          "body/messageBody": "<p>Picked clothing orders have been exported as Transfers.</p><p><strong>@{variables('varBrisbaneTime')}</strong> &nbsp; @{length(variables('varExportRows'))} transfer file(s)</p><p>@{replace(variables('varFileNameList'), decodeUriComponent('%0A'), '<br/>')}</p>"
                         },
                         "host": {
                           "apiId": "/providers/Microsoft.PowerApps/apis/shared_teams",
@@ -542,7 +542,7 @@
                                     "location": "Channel",
                                     "body/recipient/groupId": "9271f6a0-9033-4f48-95b4-651e0ee89b33",
                                     "body/recipient/channelId": "19:aSON0t2WsWaPWR5n1n42gC_UYS7D3kdGWOAneDvuLJQ1@thread.tacv2",
-                                    "body/messageBody": "<p>[TEST MODE — Store: @{items('Apply_to_each_location')}] The following clothing orders have been picked and will be delivered on your store's next pallet delivery:</p><p>@{outputs('Compose_EmployeeList')}</p><p>Please make sure that once you receive them, you sell them to the employee via Point of Sale process as per the quantity and prices listed on the delivery note. All shirts MUST be purchased by the employee.</p>"
+                                    "body/messageBody": "<p>The following clothing orders have been picked and will be delivered on your store's next pallet delivery:</p><p>@{outputs('Compose_EmployeeList')}</p><p>Please make sure that once you receive them, you sell them to the employee via Point of Sale process as per the quantity and prices listed on the delivery note. All shirts MUST be purchased by the employee.</p>"
                                   },
                                   "host": {
                                     "apiId": "/providers/Microsoft.PowerApps/apis/shared_teams",
