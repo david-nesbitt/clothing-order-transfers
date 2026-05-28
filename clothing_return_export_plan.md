@@ -12,16 +12,15 @@ The existing ClothingOrderExport flow is **not touched** — this is a completel
 
 Add the following 5 columns to the **Clothing Order Form** sheet (`5041000518995844`), positioned after the existing `Exported Date` column.
 
-| # | Column Title | Type | Purpose |
-|---|---|---|---|
-| 1 | **Returning** | CHECKBOX | Warehouse ticks when shirts received back |
-| 2 | **Date Returned** | DATE | Date shirts arrived back at warehouse 001 |
-| 3 | **Quantity Returned** | TEXT_NUMBER | How many shirts are being returned |
-| 4 | **Returned Exported Date** | DATE | Set by flow after export — do not edit manually |
-| 5 | **Returned Exported** | CHECKBOX | Ticked by flow after export — do not edit manually |
+| # | Column Title | Type | Index | Column ID | Purpose |
+|---|---|---|---|---|---|
+| 1 | **Returning** | CHECKBOX | 18 | `8475089208381316` | Warehouse ticks when shirts received back |
+| 2 | **Date Returned** | DATE | 19 | `312314883772292` | Date shirts arrived back at warehouse 001 |
+| 3 | **Quantity Returned** | TEXT_NUMBER | 20 | `4815914511142788` | How many shirts are being returned |
+| 4 | **Returned Exported Date** | DATE | 21 | `2564114697457540` | Set by flow after export — do not edit manually |
+| 5 | **Returned Exported** | CHECKBOX | 22 | `7067714324828036` | Ticked by flow after export — do not edit manually |
 
-**After adding:** Record the 5 new column IDs from the Smartsheet column settings.
-These IDs are needed to build the flow.
+**Columns added to Smartsheet on 2026-05-28. ✅**
 
 > **Workflow for warehouse staff:** When shirts come back, find the original row for that employee + shirt size, tick **Returning**, fill in **Date Returned** and **Quantity Returned**. Leave the last two columns alone — the flow sets them.
 
@@ -38,11 +37,11 @@ These IDs are needed to build the flow.
 |---|---|---|---|
 | varSheetId | String | `5041000518995844` | Same sheet |
 | varAPIToken | String | *(paste from password manager)* | Smartsheet API token |
-| varReturningColId | String | *(new col ID — fill after Step 1)* | Returning checkbox |
-| varDateReturnedColId | String | *(new col ID — fill after Step 1)* | Date Returned |
-| varQtyReturnedColId | String | *(new col ID — fill after Step 1)* | Quantity Returned |
-| varReturnedExportedDateColId | String | *(new col ID — fill after Step 1)* | Returned Exported Date |
-| varReturnedExportedColId | String | *(new col ID — fill after Step 1)* | Returned Exported checkbox |
+| varReturningColId | String | `8475089208381316` | Returning checkbox |
+| varDateReturnedColId | String | `312314883772292` | Date Returned |
+| varQtyReturnedColId | String | `4815914511142788` | Quantity Returned |
+| varReturnedExportedDateColId | String | `2564114697457540` | Returned Exported Date |
+| varReturnedExportedColId | String | `7067714324828036` | Returned Exported checkbox |
 | varBrisbaneTime | String | `convertTimeZone(...)` | Display in Teams message |
 | varBrisbaneDate | String | `convertTimeZone(...)` | Written to Returned Exported Date |
 | varTimestamp | String | `convertTimeZone(...)` | Filename timestamp |
@@ -169,7 +168,7 @@ and(
 
 | # | Step | Notes |
 |---|---|---|
-| 1 | Add 5 columns to Smartsheet | Manual in Smartsheet UI, record column IDs |
+| 1 | ~~Add 5 columns to Smartsheet~~ | ✅ Done 2026-05-28 — column IDs recorded above |
 | 2 | Build flow definition.json from scratch (based on existing flow pattern) | New flow GUID, new flow name |
 | 3 | Test in varTestMode with a real row that has the new columns filled | Confirm file created, Smartsheet ticked, Teams message in test channel |
 | 4 | Go-live — varTestMode = false, turn flow ON | |
