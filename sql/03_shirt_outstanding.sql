@@ -26,7 +26,7 @@ FROM (
     GROUP BY st.STOCK_LOCATION, st.STOCK_CODE
 ) t
 LEFT JOIN (
-    -- Shirts sold at each store via debtor invoice (ENTERED_QTY is negative on sales)
+    -- Shirts sold at each store via debtor invoice — only from the date of first transfer onwards
     SELECT
         st.STOCK_LOCATION                              AS STORE_LOCATION,
         st.STOCK_CODE,
@@ -35,6 +35,16 @@ LEFT JOIN (
     WHERE st.TRANS_TYPE  = 'DRINV'
       AND st.STOCK_CODE LIKE '999100%'
       AND st.COMPANY_CODE = 'OS'
+      AND CONVERT(date, st.TRANS_DATE) >= (
+          SELECT MIN(CONVERT(date, t.TRANS_DATE))
+          FROM   [OceanicSquare].[dbo].[STK_TRANS] t
+          WHERE  t.TRANS_TYPE   = 'STTRF'
+            AND  t.USER_FIELD_2 = 'SHIRT ORDER'
+            AND  t.STOCK_CODE   = st.STOCK_CODE
+            AND  t.STOCK_LOCATION = st.STOCK_LOCATION
+            AND  t.COMPANY_CODE = 'OS'
+            AND  t.ENTERED_QTY  > 0
+      )
     GROUP BY st.STOCK_LOCATION, st.STOCK_CODE
 ) s ON  s.STORE_LOCATION = t.STORE_LOCATION
     AND s.STOCK_CODE     = t.STOCK_CODE
