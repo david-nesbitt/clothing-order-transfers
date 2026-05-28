@@ -90,7 +90,7 @@
         },
         "Initialize_varTestMode": {
           "type": "InitializeVariable",
-          "inputs": { "variables": [{ "name": "varTestMode", "type": "boolean", "value": true }] },
+          "inputs": { "variables": [{ "name": "varTestMode", "type": "boolean", "value": false }] },
           "runAfter": { "Initialize_varTimestamp": ["Succeeded"] }
         },
         "Initialize_varFileNameList": {
@@ -142,7 +142,7 @@
         },
         "Initialize_varSilentMode": {
           "type": "InitializeVariable",
-          "inputs": { "variables": [{ "name": "varSilentMode", "type": "boolean", "value": true }] },
+          "inputs": { "variables": [{ "name": "varSilentMode", "type": "boolean", "value": false }] },
           "runAfter": { "Initialize_varStoreMapping": ["Succeeded"] }
         },
         "Main_Flow": {
