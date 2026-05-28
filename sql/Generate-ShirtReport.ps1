@@ -168,66 +168,70 @@ $cWhite    = rgb 255 255 255
 $today = Get-Date -Format 'dd/MM/yyyy'
 
 # ---------------------------------------------------------------
-# SHEET 1 - ON HAND PIVOT  (with Outstanding columns)
+# SHEET 1 - ON HAND PIVOT  (On Hand + Outstanding paired by size)
 # ---------------------------------------------------------------
 Write-Host "Building 'On Hand' sheet..."
 
-$nCodes    = $shirtCodes.Count   # 7
-# Column layout:
-#   1          = Location
-#   2..(n+1)   = On Hand per size  (cols 2-8)
-#   n+2        = Total On Hand     (col 9)
-#   n+3        = separator         (col 10)
-#   n+4..(2n+3)= Outstanding per size (cols 11-17)
-#   2n+4       = Total Outstanding (col 18)
-$sepCol    = $nCodes + 3          # 10
-$outStart  = $nCodes + 4          # 11
-$outEnd    = 2 * $nCodes + 3      # 17
-$outTotal  = 2 * $nCodes + 4      # 18
-$totalCols = $outTotal            # 18
+$nCodes = $shirtCodes.Count   # 7
+# Column layout — each size gets two adjacent columns (On Hand, Outstanding):
+#   Col 1             = Location
+#   2 + c*2 (c=0..6) = On Hand per size     (cols 2,4,6,8,10,12,14)
+#   3 + c*2 (c=0..6) = Outstanding per size (cols 3,5,7,9,11,13,15)
+#   2 + nCodes*2      = Total On Hand        (col 16)
+#   3 + nCodes*2      = Total Outstanding    (col 17)
+function ohCol($c)  { 2 + $c * 2 }
+function outCol($c) { 3 + $c * 2 }
+$totOHCol  = 2 + $nCodes * 2   # 16
+$totOutCol = 3 + $nCodes * 2   # 17
+$totalCols = $totOutCol         # 17
 
-# Title row 1 — merged across all columns
+# Row 1 - title
 $ws1.Cells(1,1).Value2 = "Shirt Stock On Hand and Outstanding - $today"
-$ws1.Range($ws1.Cells(1,1), $ws1.Cells(1, $totalCols)).Merge() | Out-Null
+$ws1.Range($ws1.Cells(1,1), $ws1.Cells(1,$totalCols)).Merge() | Out-Null
 $ws1.Cells(1,1).Font.Bold = $true
 $ws1.Cells(1,1).Font.Size = 13
 
-# Row 2 - On Hand size labels
+# Row 2 - merged size labels (each spanning OH + Out columns for that size)
 $ws1.Cells(2,1).Value2 = "Location"
 for ($c = 0; $c -lt $nCodes; $c++) {
-    $cell = $ws1.Cells(2, $c+2)
-    $cell.Value2 = $shirtSizeMap[$shirtCodes[$c]]
-    $cell.HorizontalAlignment = -4108
+    $oc = ohCol $c; $ouc = outCol $c
+    $ws1.Range($ws1.Cells(2, $oc), $ws1.Cells(2, $ouc)).Merge() | Out-Null
+    $ws1.Cells(2, $oc).Value2              = $shirtSizeMap[$shirtCodes[$c]]
+    $ws1.Cells(2, $oc).HorizontalAlignment = -4108
 }
-$ws1.Cells(2, $nCodes+2).Value2 = "Total On Hand"
+$ws1.Range($ws1.Cells(2,$totOHCol), $ws1.Cells(2,$totOutCol)).Merge() | Out-Null
+$ws1.Cells(2,$totOHCol).Value2              = "Totals"
+$ws1.Cells(2,$totOHCol).HorizontalAlignment = -4108
 
-# Row 2 - Outstanding size labels
+# Row 3 - sub-labels: On Hand / Outstanding for each size pair
 for ($c = 0; $c -lt $nCodes; $c++) {
-    $cell = $ws1.Cells(2, $outStart + $c)
-    $cell.Value2 = $shirtSizeMap[$shirtCodes[$c]]
-    $cell.HorizontalAlignment = -4108
+    $oc = ohCol $c; $ouc = outCol $c
+    $ws1.Cells(3, $oc).Value2               = "On Hand"
+    $ws1.Cells(3, $oc).HorizontalAlignment  = -4108
+    $ws1.Cells(3, $ouc).Value2              = "Outstanding"
+    $ws1.Cells(3, $ouc).HorizontalAlignment = -4108
 }
-$ws1.Cells(2, $outTotal).Value2 = "Total Outstanding"
+$ws1.Cells(3,$totOHCol).Value2               = "Total On Hand"
+$ws1.Cells(3,$totOHCol).HorizontalAlignment  = -4108
+$ws1.Cells(3,$totOutCol).Value2              = "Total Outstanding"
+$ws1.Cells(3,$totOutCol).HorizontalAlignment = -4108
 
-# Row 3 - stock codes (both blocks)
+# Row 2 - all blue
+$ws1.Range($ws1.Cells(2,1), $ws1.Cells(2,$totalCols)).Interior.Color = $cBlueHdr
+$ws1.Range($ws1.Cells(2,1), $ws1.Cells(2,$totalCols)).Font.Color     = $cWhite
+$ws1.Range($ws1.Cells(2,1), $ws1.Cells(2,$totalCols)).Font.Bold      = $true
+
+# Row 3 - OH sub-labels blue, Outstanding sub-labels amber
+$ws1.Cells(3,1).Interior.Color = $cBlueHdr
+$ws1.Cells(3,1).Font.Color     = $cWhite
+$ws1.Cells(3,1).Font.Bold      = $true
 for ($c = 0; $c -lt $nCodes; $c++) {
-    $cell = $ws1.Cells(3, $c+2)
-    $cell.Value2 = $shirtCodes[$c]
-    $cell.HorizontalAlignment = -4108
-    $cell.Font.Size = 8
-    $cell2 = $ws1.Cells(3, $outStart + $c)
-    $cell2.Value2 = $shirtCodes[$c]
-    $cell2.HorizontalAlignment = -4108
-    $cell2.Font.Size = 8
+    $oc = ohCol $c; $ouc = outCol $c
+    $ohC  = $ws1.Cells(3, $oc);  $ohC.Interior.Color  = $cBlueHdr;  $ohC.Font.Color  = $cWhite;  $ohC.Font.Bold  = $true
+    $outC = $ws1.Cells(3, $ouc); $outC.Interior.Color = $cAmberHdr; $outC.Font.Color = $cWhite;  $outC.Font.Bold = $true
 }
-
-# Header formatting — Blue for On Hand block, Amber for Outstanding block
-$ws1.Range($ws1.Cells(2,1), $ws1.Cells(3, $nCodes+2)).Interior.Color = $cBlueHdr
-$ws1.Range($ws1.Cells(2,1), $ws1.Cells(3, $nCodes+2)).Font.Color     = $cWhite
-$ws1.Range($ws1.Cells(2,1), $ws1.Cells(3, $nCodes+2)).Font.Bold      = $true
-$ws1.Range($ws1.Cells(2,$outStart), $ws1.Cells(3, $outTotal)).Interior.Color = $cAmberHdr
-$ws1.Range($ws1.Cells(2,$outStart), $ws1.Cells(3, $outTotal)).Font.Color     = $cWhite
-$ws1.Range($ws1.Cells(2,$outStart), $ws1.Cells(3, $outTotal)).Font.Bold      = $true
+$ws1.Cells(3,$totOHCol).Interior.Color  = $cBlueHdr;  $ws1.Cells(3,$totOHCol).Font.Color  = $cWhite;  $ws1.Cells(3,$totOHCol).Font.Bold  = $true
+$ws1.Cells(3,$totOutCol).Interior.Color = $cAmberHdr; $ws1.Cells(3,$totOutCol).Font.Color = $cWhite;  $ws1.Cells(3,$totOutCol).Font.Bold = $true
 
 # Data rows
 $ohLocs = @($dtOnHand | ForEach-Object { $_.STOCK_LOCATION } | Sort-Object -Unique)
@@ -239,27 +243,27 @@ foreach ($loc in $ohLocs) {
     $rowOutTotal = 0.0
 
     for ($c = 0; $c -lt $nCodes; $c++) {
-        # On Hand
-        $ohQty = getOnHand $loc $shirtCodes[$c]
-        if ($ohQty -gt 0) { setNum $ws1 $r ($c+2) $ohQty }
-        $rowOHTotal += $ohQty
-
-        # Outstanding
+        $oc = ohCol $c; $ouc = outCol $c
+        $ohQty  = getOnHand      $loc $shirtCodes[$c]
         $outQty = getOutstanding $loc $shirtCodes[$c]
-        if ($outQty -ne 0) { setNum $ws1 $r ($outStart+$c) $outQty }
+        if ($ohQty  -gt 0) { setNum $ws1 $r $oc  $ohQty  }
+        if ($outQty -ne 0) { setNum $ws1 $r $ouc $outQty }
+        $rowOHTotal  += $ohQty
         $rowOutTotal += $outQty
+        $ws1.Cells($r, $oc).Interior.Color  = if ($alt) { $cGray } else { $cWhite }
+        $ws1.Cells($r, $ouc).Interior.Color = $cAmberLt
     }
-    setNum $ws1 $r ($nCodes+2) $rowOHTotal
-    $ws1.Cells.Item($r, $nCodes+2).Font.Bold = $true
+    setNum $ws1 $r $totOHCol $rowOHTotal
+    $ws1.Cells.Item($r,$totOHCol).Font.Bold = $true
     if ($rowOutTotal -ne 0) {
-        setNum $ws1 $r $outTotal $rowOutTotal
-        $ws1.Cells.Item($r, $outTotal).Font.Bold = $true
+        setNum $ws1 $r $totOutCol $rowOutTotal
+        $ws1.Cells.Item($r,$totOutCol).Font.Bold = $true
     }
 
-    # Alternating row colour (only on-hand block — outstanding block gets amber tint)
     $rowFill = if ($alt) { $cGray } else { $cWhite }
-    $ws1.Range($ws1.Cells($r,1), $ws1.Cells($r, $nCodes+2)).Interior.Color = $rowFill
-    $ws1.Range($ws1.Cells($r,$outStart), $ws1.Cells($r,$outTotal)).Interior.Color = $cAmberLt
+    $ws1.Cells($r,1).Interior.Color          = $rowFill
+    $ws1.Cells($r,$totOHCol).Interior.Color  = $rowFill
+    $ws1.Cells($r,$totOutCol).Interior.Color = $cAmberLt
     $alt = -not $alt
     $r++
 }
@@ -269,36 +273,39 @@ $ws1.Cells($r,1).Value2 = "TOTAL"
 $grandOH  = 0.0
 $grandOut = 0.0
 for ($c = 0; $c -lt $nCodes; $c++) {
+    $oc = ohCol $c; $ouc = outCol $c
     $colOH  = 0.0
     $colOut = 0.0
     foreach ($loc in $ohLocs) {
-        $colOH  += getOnHand    $loc $shirtCodes[$c]
+        $colOH  += getOnHand      $loc $shirtCodes[$c]
         $colOut += getOutstanding $loc $shirtCodes[$c]
     }
-    if ($colOH  -gt 0) { setNum $ws1 $r ($c+2)        $colOH  }
-    if ($colOut -ne 0) { setNum $ws1 $r ($outStart+$c) $colOut }
+    if ($colOH  -gt 0) { setNum $ws1 $r $oc  $colOH  }
+    if ($colOut -ne 0) { setNum $ws1 $r $ouc $colOut }
     $grandOH  += $colOH
     $grandOut += $colOut
+    $ws1.Cells($r, $oc).Interior.Color  = $cBlueHdr;  $ws1.Cells($r, $oc).Font.Color  = $cWhite;  $ws1.Cells($r, $oc).Font.Bold  = $true
+    $ws1.Cells($r, $ouc).Interior.Color = $cAmberHdr; $ws1.Cells($r, $ouc).Font.Color = $cWhite;  $ws1.Cells($r, $ouc).Font.Bold = $true
 }
-setNum $ws1 $r ($nCodes+2) $grandOH
-if ($grandOut -ne 0) { setNum $ws1 $r $outTotal $grandOut }
+setNum $ws1 $r $totOHCol $grandOH
+if ($grandOut -ne 0) { setNum $ws1 $r $totOutCol $grandOut }
 
-$ws1.Range($ws1.Cells($r,1), $ws1.Cells($r, $nCodes+2)).Interior.Color = $cBlueHdr
-$ws1.Range($ws1.Cells($r,1), $ws1.Cells($r, $nCodes+2)).Font.Color     = $cWhite
-$ws1.Range($ws1.Cells($r,1), $ws1.Cells($r, $nCodes+2)).Font.Bold      = $true
-$ws1.Range($ws1.Cells($r,$outStart), $ws1.Cells($r,$outTotal)).Interior.Color = $cAmberHdr
-$ws1.Range($ws1.Cells($r,$outStart), $ws1.Cells($r,$outTotal)).Font.Color     = $cWhite
-$ws1.Range($ws1.Cells($r,$outStart), $ws1.Cells($r,$outTotal)).Font.Bold      = $true
+$ws1.Cells($r,1).Interior.Color          = $cBlueHdr;  $ws1.Cells($r,1).Font.Color          = $cWhite;  $ws1.Cells($r,1).Font.Bold          = $true
+$ws1.Cells($r,$totOHCol).Interior.Color  = $cBlueHdr;  $ws1.Cells($r,$totOHCol).Font.Color  = $cWhite;  $ws1.Cells($r,$totOHCol).Font.Bold  = $true
+$ws1.Cells($r,$totOutCol).Interior.Color = $cAmberHdr; $ws1.Cells($r,$totOutCol).Font.Color = $cWhite;  $ws1.Cells($r,$totOutCol).Font.Bold = $true
 
-# Number format — blank zeros across all data cells
-$ws1.Range($ws1.Cells(4,2), $ws1.Cells($r, $nCodes+2)).NumberFormat  = "#,##0;-#,##0;;"
-$ws1.Range($ws1.Cells(4,$outStart), $ws1.Cells($r, $outTotal)).NumberFormat = "#,##0;-#,##0;;"
+# Number format - blank zeros across all numeric columns
+$ws1.Range($ws1.Cells(4,2), $ws1.Cells($r,$totalCols)).NumberFormat = "#,##0;-#,##0;;"
 
 # Column widths
 $ws1.Columns(1).ColumnWidth = 28
-for ($c = 2; $c -le $nCodes+2; $c++) { $ws1.Columns($c).ColumnWidth = 9 }
-$ws1.Columns($sepCol).ColumnWidth = 3    # narrow separator
-for ($c = $outStart; $c -le $outTotal; $c++) { $ws1.Columns($c).ColumnWidth = 9 }
+for ($c = 0; $c -lt $nCodes; $c++) {
+    $oc = ohCol $c; $ouc = outCol $c
+    $ws1.Columns($oc).ColumnWidth  = 9
+    $ws1.Columns($ouc).ColumnWidth = 11
+}
+$ws1.Columns($totOHCol).ColumnWidth  = 12
+$ws1.Columns($totOutCol).ColumnWidth = 14
 
 $ws1.Activate()
 $ws1.Cells(4,1).Select() | Out-Null
