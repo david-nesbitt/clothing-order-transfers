@@ -1,5 +1,26 @@
 # Plan: Shirt Returns Export — Store → Warehouse
 
+## ✅ LIVE — 29/05/2026
+
+Flow is on and running daily at 6:45 PM Brisbane. Updated with transfer numbers and new filename format to match the order export pattern.
+
+**Latest live export:** `flow/ClothingReturnExportLIVEVERSION_20260529035627.zip`
+
+### Final file format (post-29/05/2026 update)
+**Filename:** `STKTRAN_{transferNum}_{StoreID}-001_{yyyyMMdd}_{employeeId}_SHIRT_RETURN.txt`
+**CSV row:**
+```
+{transferNum},{DateReturned dd/MM/yyyy},{EmpID}-STAFF SHIRT RETURN,S,{StoreID},001,{StockCode},{EmpID} {EMP NAME},{QtyReturned},{EmpID},SHIRT RETURNED,{DateReturned dd/MM/yyyy},{DateReturned dd/MM/yyyy},{StoreID}-{StockCode}
+```
+Note Field 3 is `STAFF SHIRT RETURN` (no D); Field 11 is `SHIRT RETURNED` (with D) — intentional.
+
+### Transfer number
+Same as order export — `PP.dbo.sproc_Next_Stocktrans_number` via SQL Server connector through PP01-SV06 gateway.
+
+---
+
+## Original plan
+
 ## Overview
 
 When a store sends shirts back to warehouse 001, warehouse staff fill in 5 new Smartsheet columns on the original order row. A new Power Automate flow runs at **6:45 PM Brisbane** each evening, picks up any rows ready for return export, writes a STKTRAN_*.txt file per row to `\\PPS2012\DataLoad\StkTrans`, ticks the row back in Smartsheet, and posts one summary message to the Warehouse Team channel.

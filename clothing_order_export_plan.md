@@ -3,7 +3,26 @@
 
 ---
 
-## ⚡ Current Status — 28/05/2026
+## ✅ LIVE — 29/05/2026
+
+Flow is on and running daily at 6:30 PM Brisbane. `varTestMode = false`, `varSilentMode = false`. Tested end-to-end including SQL transfer numbers, new filename format, and per-store Teams notifications.
+
+**Latest live export:** `flow/ClothingOrderExportLIVEVERSION_20260529035746.zip`
+**Repo package mirror:** `flow/ClothingOrderExport_v21_TEST.zip` (mojibake-fixed match of v20 export)
+
+### Final file format
+**Filename:** `STKTRAN_{transferNum}_001-{locationId}_{yyyyMMdd}_{employeeId}_SHIRT_TRAN.txt`
+**CSV row (14 fields):**
+```
+{transferNum},{PickedDate dd/MM/yyyy},{EmpID}-STAFF SHIRT ORDER,S,001,{StoreID},{StockCode},{EmpID} {EMP NAME},{PickedQty},{EmpID},SHIRT ORDER,{PickedDate dd/MM/yyyy},{CreatedDate dd/MM/yyyy},{EmpID}-{StockCode}
+```
+
+### Transfer number
+Each row gets a unique INT from `PP.dbo.sproc_Next_Stocktrans_number` (atomic via row-lock UPDATE on `OceanicSquare.SYSTEM_MASTER.number_12`). Called inside the loop via SQL Server connector through PP01-SV06 gateway.
+
+---
+
+## Historical — pre-LIVE status (28/05/2026)
 
 ### What's built and working (v15)
 | Item | Status |
