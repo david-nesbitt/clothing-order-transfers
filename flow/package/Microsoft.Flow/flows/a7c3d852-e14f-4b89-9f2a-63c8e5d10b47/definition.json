@@ -326,13 +326,15 @@
                         "parameters": {
                           "server": "PP01-SV10",
                           "database": "PP",
-                          "procedure": "[dbo].[sproc_Next_Stocktrans_number]"
+                          "procedure": "[dbo].[sproc_Next_Stocktrans_number]",
+                          "parameters": {}
                         },
                         "host": {
                           "apiId": "/providers/Microsoft.PowerApps/apis/shared_sql",
                           "connectionName": "shared_sql",
-                          "operationId": "ExecuteProcedureV2"
-                        }
+                          "operationId": "ExecuteProcedure_V2"
+                        },
+                        "authentication": "@parameters('$authentication')"
                       },
                       "runAfter": {}
                     },
