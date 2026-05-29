@@ -5,10 +5,10 @@
 
 ## ⚡ Current Status — 28/05/2026
 
-### What's built and working (v14)
+### What's built and working (v15)
 | Item | Status |
 |---|---|
-| Importable Power Automate package | ✅ `flow/ClothingOrderExport_v14_TEST.zip` |
+| Importable Power Automate package | ✅ `flow/ClothingOrderExport_v15_TEST.zip` |
 | Scheduled trigger — 08:30 UTC (6:30 PM Brisbane) | ✅ In definition |
 | File creation — STKTRAN_*.txt → \\PPS2012\DataLoad\StkTrans | ✅ Tested and working |
 | Smartsheet tick-back (Exported Transfer + Exported Date) | ✅ Tested and working |
@@ -20,13 +20,18 @@
 | varSilentMode flag (true = export files + tick Smartsheet, skip all Teams posts) | ✅ Added in v13 |
 | All store Teams channels mapped in varStoreMapping (25 stores) | ✅ Added in v14 |
 | Stock code + description in Teams message (bold) | ✅ Working |
+| Transfer number from SQL (PP.dbo.sproc_Next_Stocktrans_number) — one per file | ✅ Added in v15 |
+| Filename: STKTRAN_{transferNum}_001-{locationId}_{yyyyMMdd}_{employeeId}_SHIRT_TRAN.txt | ✅ Added in v15 |
+| CSV field 1: transfer number (was empty) | ✅ Added in v15 |
+| CSV field 3: {employeeId}-STAFF SHIRT ORDER (was static "STAFF SHIRT ORDER") | ✅ Added in v15 |
 
 ### Flow state right now
 - **Flow is TURNED OFF** in Power Automate (do not turn on until go-live checklist below is complete)
 - **varTestMode = true** — all Teams posts still route to Feature Test Site → General
 - **varSilentMode = true** — Teams notifications suppressed (default safe value; set false for live)
 - **Filter = Picked Quantity equals 100** (test filter) — must be changed to `> 0` before backfill run
-- **Package version:** v14 — `flow/ClothingOrderExport_v14_TEST.zip`
+- **Package version:** v15 — `flow/ClothingOrderExport_v15_TEST.zip`
+- **⚠️ Requires new SQL Server connection** — see Step 2a below before importing
 
 ### varStoreMapping — ALL STORES MAPPED ✅
 | Store | Name | Team | Mapped |
@@ -71,6 +76,30 @@ When `varSilentMode = true`: exports files and ticks Smartsheet — but skips al
 
 ### ~~Step 2 — Collect remaining store Teams channel URLs~~ ✅ DONE (v14)
 All 25 active stores mapped. Region 2 groupId: `169c7144-b155-445c-beab-6b176f76ec08`. Toowoomba groupId: `8f5be748-f935-40a7-b3b5-87068317a39b`.
+
+### Step 2a — Create SQL Server connection in Power Automate (NEW — required for v15)
+
+Before importing v15, a SQL Server connection must exist in Power Automate:
+
+1. Go to Power Automate → **Data** → **Connections** → **New connection**
+2. Search for **SQL Server**
+3. Authentication type: **Windows Authentication**
+4. SQL Server name: `PP01-SV10`
+5. SQL Database name: `PP`
+6. Username: `PRICESPLUS\TenciaCheckSvc`
+7. Gateway: **PP01-SV06** (the existing on-premises data gateway)
+8. Save the connection
+
+During import of v15, when prompted to map `shared_sql`, select this new connection.
+
+**Stored procedure used:** `PP.dbo.sproc_Next_Stocktrans_number`
+- Atomically increments `OceanicSquare.dbo.SYSTEM_MASTER.number_12` (COMPANY_CODE='os', PARAMETER_ID='STOCK')
+- Returns the new value as an INT result set — no `.000000` formatting issue
+- Called once per qualifying row (inside the loop) → each file gets its own unique transfer number
+
+**Result path in PA expression:** `body('Execute_Next_Transfer_Number')?['resultsets']?['Table1']?[0]?['ref']`
+
+---
 
 ### Step 3 — Backfill run (all ~105 historic rows, no Teams messages)
 Once varSilentMode is built and the filter is updated:

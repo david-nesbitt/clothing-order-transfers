@@ -142,7 +142,7 @@
         },
         "Initialize_varSilentMode": {
           "type": "InitializeVariable",
-          "inputs": { "variables": [{ "name": "varSilentMode", "type": "boolean", "value": false }] },
+          "inputs": { "variables": [{ "name": "varSilentMode", "type": "boolean", "value": true }] },
           "runAfter": { "Initialize_varStoreMapping": ["Succeeded"] }
         },
         "Main_Flow": {
@@ -320,24 +320,48 @@
                       },
                       "runAfter": {}
                     },
+                    "Execute_Next_Transfer_Number": {
+                      "type": "OpenApiConnection",
+                      "inputs": {
+                        "parameters": {
+                          "server": "PP01-SV10",
+                          "database": "PP",
+                          "procedure": "[dbo].[sproc_Next_Stocktrans_number]"
+                        },
+                        "host": {
+                          "apiId": "/providers/Microsoft.PowerApps/apis/shared_sql",
+                          "connectionName": "shared_sql",
+                          "operationId": "ExecuteProcedureV2"
+                        },
+                        "authentication": "@parameters('$authentication')"
+                      },
+                      "runAfter": {}
+                    },
+                    "Compose_TransferNumber": {
+                      "type": "Compose",
+                      "inputs": "@string(body('Execute_Next_Transfer_Number')?['resultsets']?['Table1']?[0]?['ref'])",
+                      "runAfter": { "Execute_Next_Transfer_Number": ["Succeeded"] }
+                    },
                     "Compose_FileName": {
                       "type": "Compose",
-                      "inputs": "@concat('STKTRAN_', outputs('Compose_PostToLocationID'), '_', outputs('Compose_EmployeeID'), '_', formatDateTime(outputs('Compose_PickedDateISO'), 'yyyy-MM-dd'), '.txt')",
+                      "inputs": "@concat('STKTRAN_', outputs('Compose_TransferNumber'), '_001-', outputs('Compose_PostToLocationID'), '_', formatDateTime(outputs('Compose_PickedDateISO'), 'yyyyMMdd'), '_', outputs('Compose_EmployeeID'), '_SHIRT_TRAN.txt')",
                       "runAfter": {
                         "Compose_EmployeeID": ["Succeeded"],
                         "Compose_PostToLocationID": ["Succeeded"],
                         "Compose_PickedDateISO": ["Succeeded"],
-                        "Compose_StockCode": ["Succeeded"]
+                        "Compose_StockCode": ["Succeeded"],
+                        "Compose_TransferNumber": ["Succeeded"]
                       }
                     },
                     "Compose_CSVContent": {
                       "type": "Compose",
-                      "inputs": "@concat(',', formatDateTime(outputs('Compose_PickedDateISO'), 'dd/MM/yyyy'), ',', 'STAFF SHIRT ORDER,S,001,', outputs('Compose_PostToLocationID'), ',', outputs('Compose_StockCode'), ',', outputs('Compose_EmployeeID'), ' ', toUpper(outputs('Compose_EmployeeFullName')), ',', outputs('Compose_PickedQty'), ',', outputs('Compose_EmployeeID'), ',SHIRT ORDER,', formatDateTime(outputs('Compose_PickedDateISO'), 'dd/MM/yyyy'), ',', formatDateTime(outputs('Compose_CreatedDateISO'), 'dd/MM/yyyy'), ',', outputs('Compose_EmployeeID'), '-', outputs('Compose_StockCode'))",
+                      "inputs": "@concat(outputs('Compose_TransferNumber'), ',', formatDateTime(outputs('Compose_PickedDateISO'), 'dd/MM/yyyy'), ',', concat(outputs('Compose_EmployeeID'), '-STAFF SHIRT ORDER'), ',S,001,', outputs('Compose_PostToLocationID'), ',', outputs('Compose_StockCode'), ',', outputs('Compose_EmployeeID'), ' ', toUpper(outputs('Compose_EmployeeFullName')), ',', outputs('Compose_PickedQty'), ',', outputs('Compose_EmployeeID'), ',SHIRT ORDER,', formatDateTime(outputs('Compose_PickedDateISO'), 'dd/MM/yyyy'), ',', formatDateTime(outputs('Compose_CreatedDateISO'), 'dd/MM/yyyy'), ',', outputs('Compose_EmployeeID'), '-', outputs('Compose_StockCode'))",
                       "runAfter": {
                         "Compose_FileName": ["Succeeded"],
                         "Compose_EmployeeFullName": ["Succeeded"],
                         "Compose_PickedQty": ["Succeeded"],
-                        "Compose_CreatedDateISO": ["Succeeded"]
+                        "Compose_CreatedDateISO": ["Succeeded"],
+                        "Compose_TransferNumber": ["Succeeded"]
                       }
                     },
                     "Create_File": {
