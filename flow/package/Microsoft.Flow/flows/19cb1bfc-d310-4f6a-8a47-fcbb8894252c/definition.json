@@ -1,10 +1,10 @@
-{
+﻿{
   "name": "a7c3d852-e14f-4b89-9f2a-63c8e5d10b47",
   "id": "/providers/Microsoft.Flow/flows/a7c3d852-e14f-4b89-9f2a-63c8e5d10b47",
   "type": "Microsoft.Flow/flows",
   "properties": {
     "apiId": "/providers/Microsoft.PowerApps/apis/shared_logicflows",
-    "displayName": "Clothing Order Export — Daily 6:30PM Brisbane",
+    "displayName": "Clothing Order Export â€” Daily 6:30PM Brisbane",
     "description": "Exports qualifying clothing orders from Smartsheet as TXT files via On-premises Data Gateway, updates Smartsheet, sends Teams notifications, sends a Teams DM to DavidN on failure.",
     "definition": {
       "metadata": {
@@ -534,7 +534,7 @@
                       "type": "Select",
                       "inputs": {
                         "from": "@body('Filter_Rows_for_Location')",
-                        "select": "@concat('<strong>', toUpper(string(item()?['employeeFullName'])), ' — ', string(item()?['shirtLine']), ' × ', string(item()?['pickedQty']), '</strong>')"
+                        "select": "@concat('<strong>', toUpper(string(item()?['employeeFullName'])), ' â€” ', string(item()?['shirtLine']), ' Ã— ', string(item()?['pickedQty']), '</strong>')"
                       },
                       "runAfter": { "Filter_Rows_for_Location": ["Succeeded"] }
                     },
@@ -619,7 +619,7 @@
                                     "actions": {
                                       "Compose_Store_Not_Mapped": {
                                         "type": "Compose",
-                                        "inputs": "Store @{items('Apply_to_each_location')} not yet in varStoreMapping — no live notification sent.",
+                                        "inputs": "Store @{items('Apply_to_each_location')} not yet in varStoreMapping â€” no live notification sent.",
                                         "runAfter": {}
                                       }
                                     }
@@ -657,7 +657,7 @@
               "poster": "Flow bot",
               "location": "Chat with Flow bot",
               "body/recipient": "DavidN@pricesplus.com.au",
-              "body/messageBody": "<p>⚠️ <strong>Clothing Order Export — Flow Failed</strong></p><p>The scheduled flow failed or timed out at <strong>@{variables('varBrisbaneTime')}</strong>.</p><p>Please check the <a href=\"https://make.powerautomate.com\">Power Automate run history</a> for error details.</p>"
+              "body/messageBody": "<p>âš ï¸ <strong>Clothing Order Export â€” Flow Failed</strong></p><p>The scheduled flow failed or timed out at <strong>@{variables('varBrisbaneTime')}</strong>.</p><p>Please check the <a href=\"https://make.powerautomate.com\">Power Automate run history</a> for error details.</p>"
             },
             "host": {
               "apiId": "/providers/Microsoft.PowerApps/apis/shared_teams",
@@ -692,3 +692,4 @@
     "isManaged": false
   }
 }
+
