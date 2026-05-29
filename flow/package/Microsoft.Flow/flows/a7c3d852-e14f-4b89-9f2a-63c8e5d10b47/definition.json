@@ -332,8 +332,7 @@
                           "apiId": "/providers/Microsoft.PowerApps/apis/shared_sql",
                           "connectionName": "shared_sql",
                           "operationId": "ExecuteProcedureV2"
-                        },
-                        "authentication": "@parameters('$authentication')"
+                        }
                       },
                       "runAfter": {}
                     },
