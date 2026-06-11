@@ -10,3 +10,6 @@ flow/ForwardEmailstoChatbot_*.zip
 
 # Old/superseded export zips kept for reference only — not deployed
 flow/ClothingOrderExport_v4.1_*.zip
+
+# Shirt report — modified locally, not tracked
+sql/ShirtReport_20260528.xlsx
