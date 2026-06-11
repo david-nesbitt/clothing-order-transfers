@@ -1,0 +1,12 @@
+# Planning and reference docs
+CSV TXT File Definition.XLSX
+Structure Planning.docx
+
+# Test output files generated during flow testing
+Test CSV File Outputs/
+
+# Unrelated flows that ended up in this repo
+flow/ForwardEmailstoChatbot_*.zip
+
+# Old/superseded export zips kept for reference only — not deployed
+flow/ClothingOrderExport_v4.1_*.zip
