@@ -198,7 +198,7 @@
                 },
                 "Condition_Row_Qualifies": {
                   "type": "If",
-                  "expression": "@and(equals(coalesce(first(body('Get_Returning_Cell'))?['value'], false), true), not(empty(string(coalesce(first(body('Get_DateReturned_Cell'))?['value'], '')))), greater(int(coalesce(string(first(body('Get_QtyReturned_Cell'))?['value']), '0')), 0), not(equals(coalesce(first(body('Get_ReturnedExported_Cell'))?['value'], false), true)))",
+                  "expression": "@and(equals(coalesce(first(body('Get_Returning_Cell'))?['value'], false), true), not(empty(string(coalesce(first(body('Get_DateReturned_Cell'))?['value'], '')))), greater(int(coalesce(first(body('Get_QtyReturned_Cell'))?['value'], 0)), 0), not(equals(coalesce(first(body('Get_ReturnedExported_Cell'))?['value'], false), true)))",
                   "actions": {
                     "Get_EmployeeID_Cell": {
                       "type": "Query",
