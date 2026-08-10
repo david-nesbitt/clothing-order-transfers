@@ -6,8 +6,10 @@
 |---|---|
 | **Region 1** | Store channels for Region 1 locations |
 | **Region 2** | Store channels for Region 2 locations |
-| **Toowoomba** | Toowoomba store — notification goes to General channel |
+| **Region 3** | Store channels for Region 3 locations — formerly the "Toowoomba" team, renamed August 2026 (same groupId `8f5be748-f935-40a7-b3b5-87068317a39b`) |
 | **Warehouse Team** | Warehouse notification (General channel) + catchall for 001, 002 |
+
+> **Region 3 restructure (August 2026):** the Toowoomba team was renamed **Region 3**, a dedicated `031 Toowoomba` channel was created (031 previously posted to that team's General channel), and **022 Bribie Island** moved from Region 1 into Region 3 under a new `022 Bribie Island` channel. The original Region 1 channel for 022 is still active for historical purposes but no longer receives flow posts.
 
 ---
 
@@ -23,14 +25,14 @@
 | 018 | Hermit Park | Region 2 | 018 Hermit Park | ✅ Send |
 | 019 | Inverell | Region 1 | 019 Inverell | ✅ Send |
 | 021 | Brassall | Region 1 | 021 Brassall | ✅ Send |
-| 022 | Bribie Island | Region 1 | 022 Bribie Island | ✅ Send |
+| 022 | Bribie Island | Region 3 | 022 Bribie Island | ✅ Send |
 | 023 | Moranbah | Region 1 | 023 Moranbah | ✅ Send |
 | 026 | Innisfail | Region 2 | 026 Innisfail | ✅ Send |
 | 027 | Tully | Region 2 | 027 Tully | ✅ Send |
 | 028 | Ingham | Region 2 | 028 Ingham | ✅ Send |
 | 029 | Woodlands | Region 2 | 029 Woodlands | ✅ Send |
 | 030 | Charters Towers | — | — | ❌ No notification — store closed |
-| 031 | Toowoomba | Toowoomba | General | ✅ Send |
+| 031 | Toowoomba | Region 3 | 031 Toowoomba | ✅ Send |
 | 032 | Kingaroy | Region 1 | 032 Kingaroy | ✅ Send |
 | 033 | Willows | — | — | ❌ No notification — store closed |
 | 034 | Muswellbrook | Region 1 | 034 Muswellbrook | ✅ Send |

@@ -63,13 +63,13 @@ Each row gets a unique INT from `PP.dbo.sproc_Next_Stocktrans_number` (atomic vi
 | 018 | Hermit Park | Region 2 | ✅ |
 | 019 | Inverell | Region 1 | ✅ |
 | 021 | Brassall | Region 1 | ✅ |
-| 022 | Bribie Island | Region 1 | ✅ |
+| 022 | Bribie Island | Region 3 | ✅ |
 | 023 | Moranbah | Region 1 | ✅ |
 | 026 | Innisfail | Region 2 | ✅ |
 | 027 | Tully | Region 2 | ✅ |
 | 028 | Ingham | Region 2 | ✅ |
 | 029 | Woodlands | Region 2 | ✅ |
-| 031 | Toowoomba | Toowoomba → General | ✅ |
+| 031 | Toowoomba | Region 3 → 031 Toowoomba | ✅ |
 | 032 | Kingaroy | Region 1 | ✅ |
 | 034 | Muswellbrook | Region 1 | ✅ |
 | 036 | Atherton | Region 2 | ✅ |
@@ -260,13 +260,13 @@ Compress-Archive -Path "$pkg\*" -DestinationPath $out -CompressionLevel Optimal
   "018": { "groupId": "169c7144-b155-445c-beab-6b176f76ec08", "channelId": "19:1d170dae343a45b38b180331eff0b4ac@thread.tacv2" },
   "019": { "groupId": "9328e896-1d30-44f9-acd9-7456f322d86b", "channelId": "19:fd9d332a419742ceae35f2e4f83d8e45@thread.tacv2" },
   "021": { "groupId": "9328e896-1d30-44f9-acd9-7456f322d86b", "channelId": "19:894e2d5d040c4145a76934c9131ea118@thread.tacv2" },
-  "022": { "groupId": "9328e896-1d30-44f9-acd9-7456f322d86b", "channelId": "19:bb00e5550ad04060a334b8b52bc4e1ab@thread.tacv2" },
+  "022": { "groupId": "8f5be748-f935-40a7-b3b5-87068317a39b", "channelId": "19:Wml3zOYnQSKc-tzzY4E-IM8M9fB1MW6p4sUZ2L4pQRw1@thread.tacv2" },
   "023": { "groupId": "9328e896-1d30-44f9-acd9-7456f322d86b", "channelId": "19:2af021222450490885c65e319e85c6f5@thread.tacv2" },
   "026": { "groupId": "169c7144-b155-445c-beab-6b176f76ec08", "channelId": "19:43a358a3ac4b464c9ffdad734a7941b5@thread.tacv2" },
   "027": { "groupId": "169c7144-b155-445c-beab-6b176f76ec08", "channelId": "19:e883958321c74548827252cc069884ff@thread.tacv2" },
   "028": { "groupId": "169c7144-b155-445c-beab-6b176f76ec08", "channelId": "19:06c273ba963545509475fc1943a1fbe0@thread.tacv2" },
   "029": { "groupId": "169c7144-b155-445c-beab-6b176f76ec08", "channelId": "19:093a74730cd2413c8b944f29b9d4c2db@thread.tacv2" },
-  "031": { "groupId": "8f5be748-f935-40a7-b3b5-87068317a39b", "channelId": "19:P7JcTjouRUK-ud2ROb0_nARj24Il3tejaiGttj3BwCw1@thread.tacv2" },
+  "031": { "groupId": "8f5be748-f935-40a7-b3b5-87068317a39b", "channelId": "19:h8EVTsqsIh6F2fNAPdMzskBHs_3rU6eHyuWdMSA6LXw1@thread.tacv2" },
   "032": { "groupId": "9328e896-1d30-44f9-acd9-7456f322d86b", "channelId": "19:acc31a5832d64dc696620f410a57302c@thread.tacv2" },
   "034": { "groupId": "9328e896-1d30-44f9-acd9-7456f322d86b", "channelId": "19:bec96c61ae704e2ba14ba64a031a1568@thread.tacv2" },
   "036": { "groupId": "169c7144-b155-445c-beab-6b176f76ec08", "channelId": "19:c4526d3c05db4b76979ba11c75f24659@thread.tacv2" },
@@ -282,7 +282,7 @@ Compress-Archive -Path "$pkg\*" -DestinationPath $out -CompressionLevel Optimal
 Warehouse Team groupId: `e8132bda-7152-45df-b1ca-de0f52a41977`
 Region 1 groupId: `9328e896-1d30-44f9-acd9-7456f322d86b`
 Region 2 groupId: `169c7144-b155-445c-beab-6b176f76ec08`
-Toowoomba team groupId: `8f5be748-f935-40a7-b3b5-87068317a39b`
+Region 3 groupId: `8f5be748-f935-40a7-b3b5-87068317a39b` (team formerly named "Toowoomba", renamed August 2026 — groupId unchanged)
 
 ---
 
@@ -300,14 +300,14 @@ See `teams/teams_mapping.md` for logical mapping.
 | 018 | Hermit Park | Region 2 | 018 Hermit Park | ✅ Mapped |
 | 019 | Inverell | Region 1 | 019 Inverell | ✅ Mapped |
 | 021 | Brassall | Region 1 | 021 Brassall | ✅ Mapped |
-| 022 | Bribie Island | Region 1 | 022 Bribie Island | ✅ Mapped |
+| 022 | Bribie Island | Region 3 | 022 Bribie Island | ✅ Mapped |
 | 023 | Moranbah | Region 1 | 023 Moranbah | ✅ Mapped |
 | 026 | Innisfail | Region 2 | 026 Innisfail | ✅ Mapped |
 | 027 | Tully | Region 2 | 027 Tully | ✅ Mapped |
 | 028 | Ingham | Region 2 | 028 Ingham | ✅ Mapped |
 | 029 | Woodlands | Region 2 | 029 Woodlands | ✅ Mapped |
 | 030 | Charters Towers | — | — | ❌ Closed — no notification |
-| 031 | Toowoomba | Toowoomba | General | ✅ Mapped |
+| 031 | Toowoomba | Region 3 | 031 Toowoomba | ✅ Mapped |
 | 032 | Kingaroy | Region 1 | 032 Kingaroy | ✅ Mapped |
 | 033 | Willows | — | — | ❌ Closed — no notification |
 | 034 | Muswellbrook | Region 1 | 034 Muswellbrook | ✅ Mapped |
